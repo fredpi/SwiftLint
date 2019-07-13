@@ -137,11 +137,26 @@ extension Configuration {
         return mergeCustomRules(mergedRules: regularMergedRules, configuration: configuration)
     }
 
+    func mergedIncludedAndExcluded(with configuration: Configuration) -> (included: [String], excluded: [String]) {
+        if rootDirectory != configuration.rootDirectory {
+            // Configurations aren't on same level => use child configuration
+            return (included: configuration.included, excluded: configuration.excluded)
+        }
+
+        // Prefer child configuration over parent configuration
+        return (
+            included: included.filter { !configuration.excluded.contains($0) } + configuration.included,
+            excluded: excluded.filter { !configuration.included.contains($0) } + configuration.excluded
+        )
+    }
+
     internal func merged(with configuration: Configuration) -> Configuration {
+        let includedAndExcluded = mergedIncludedAndExcluded(with: configuration)
+
         return Configuration(
             rulesMode: configuration.rulesMode, // Use the rulesMode used to build the merged configuration
-            included: configuration.included, // Always use the nested included directories
-            excluded: configuration.excluded, // Always use the nested excluded directories
+            included: includedAndExcluded.included,
+            excluded: includedAndExcluded.excluded,
             // The minimum warning threshold if both exist, otherwise the nested,
             // and if it doesn't exist try to use the parent one
             warningThreshold: warningThreshold.map { warningThreshold in

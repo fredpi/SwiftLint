@@ -166,9 +166,7 @@ public struct Configuration: Hashable {
             // Merge sub config if needed
             if let subConfigFile = dict[Key.subConfig.rawValue] as? String {
                 merge(
-                    subConfigFile: subConfigFile,
-                    currentFilePath: fullPath,
-                    quiet: quiet,
+                    subConfigFile: subConfigFile, currentFilePath: fullPath, quiet: quiet,
                     subConfigPreviousPaths: subConfigPreviousPaths
                 )
             }

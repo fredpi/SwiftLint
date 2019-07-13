@@ -1,5 +1,5 @@
 extension Configuration {
-    private enum Key: String {
+    internal enum Key: String {
         case cachePath = "cache_path"
         case disabledRules = "disabled_rules"
         case enabledRules = "enabled_rules" // deprecated in favor of optInRules
@@ -13,6 +13,7 @@ extension Configuration {
         case whitelistRules = "whitelist_rules"
         case indentation = "indentation"
         case analyzerRules = "analyzer_rules"
+        case subConfig = "sub_config"
     }
 
     private static let validGlobalKeys: Set<String> = {
@@ -29,7 +30,8 @@ extension Configuration {
             .warningThreshold,
             .whitelistRules,
             .indentation,
-            .analyzerRules
+            .analyzerRules,
+            .subConfig
         ].map({ $0.rawValue }))
     }()
 

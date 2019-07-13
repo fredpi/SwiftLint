@@ -31,7 +31,7 @@ extension Configuration {
                     quiet: true,
                     customRulesIdentifiers: customRuleIdentifiers ?? []
                 )
-            return merge(with: config)
+            return merged(with: config)
         }
 
         // If we are not at the root path, continue down the tree
@@ -137,7 +137,7 @@ extension Configuration {
         return mergeCustomRules(mergedRules: regularMergedRules, configuration: configuration)
     }
 
-    internal func merge(with configuration: Configuration) -> Configuration {
+    internal func merged(with configuration: Configuration) -> Configuration {
         return Configuration(
             rulesMode: configuration.rulesMode, // Use the rulesMode used to build the merged configuration
             included: configuration.included, // Always use the nested included directories

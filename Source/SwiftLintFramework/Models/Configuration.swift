@@ -127,8 +127,9 @@ public struct Configuration: Hashable {
     }
 
     public init(path: String = Configuration.fileName, rootPath: String? = nil,
-                optional: Bool = true, quiet: Bool = false, enableAllRules: Bool = false,
-                cachePath: String? = nil, customRulesIdentifiers: [String] = []) {
+                optional: Bool = true, quiet: Bool = false,
+                enableAllRules: Bool = false, cachePath: String? = nil,
+                customRulesIdentifiers: [String] = [], subConfigPreviousPaths: [String] = []) {
         let fullPath: String
         if let rootPath = rootPath, rootPath.isDirectory() {
             fullPath = path.bridge().absolutePathRepresentation(rootDirectory: rootPath)
@@ -161,6 +162,17 @@ public struct Configuration: Hashable {
             }
             self.init(dict: dict, enableAllRules: enableAllRules,
                       cachePath: cachePath, customRulesIdentifiers: customRulesIdentifiers)!
+
+            // Merge sub config if needed
+            if let subConfigFile = dict[Key.subConfig.rawValue] as? String {
+                merge(
+                    subConfigFile: subConfigFile,
+                    currentFilePath: fullPath,
+                    quiet: quiet,
+                    subConfigPreviousPaths: subConfigPreviousPaths
+                )
+            }
+
             configurationPath = fullPath
             self.rootPath = rootPath
             setCached(atPath: fullPath)
@@ -172,6 +184,59 @@ public struct Configuration: Hashable {
         }
         self.init(rulesMode: rulesMode, cachePath: cachePath, customRulesIdentifiers: customRulesIdentifiers)!
         setCached(atPath: fullPath)
+    }
+
+    private mutating func merge(
+        subConfigFile: String,
+        currentFilePath: String,
+        quiet: Bool,
+        subConfigPreviousPaths: [String]
+    ) {
+        let fail = { (msg: String) in
+            queuedPrintError(msg)
+            if let firstSubConfigFilePath = subConfigPreviousPaths.first {
+                // Print entire stack of config file references
+                queuedFatalError(
+                    "Could not read sub config file ('\(currentFilePath)')"
+                        + subConfigPreviousPaths.dropFirst().reversed().reduce("") {
+                            $0 + " originating from sub config file ('\($1)')"
+                        }
+                        + " originating from main config file ('\(firstSubConfigFilePath)')"
+                )
+            } else {
+                queuedFatalError(
+                    "Could not read configuration file ('\(currentFilePath))')"
+                )
+            }
+        }
+
+        let subConfigPath = currentFilePath.bridge().deletingLastPathComponent
+            .bridge().appendingPathComponent(subConfigFile)
+
+        if subConfigFile.contains("/") {
+            fail("The file specified as sub_config must be on the same level as the base config file")
+        } else if !FileManager.default.fileExists(atPath: subConfigPath) {
+            fail("Unable to find file specified as sub_config (\(subConfigPath))")
+        } else if subConfigPreviousPaths.contains(subConfigPath) { // Avoid cyclomatic references
+            let cycleDescription = (subConfigPreviousPaths + [currentFilePath, subConfigPath]).map {
+                $0.bridge().lastPathComponent
+            }.reduce("") { $0 + " => " + $1 }.dropFirst(4)
+            fail("Invalid cycle of sub_config references: \(cycleDescription)")
+        } else {
+            let customRuleIdentifiers = (rules.first(where: { $0 is CustomRules }) as? CustomRules)?
+                .configuration.customRuleConfigurations.map { $0.identifier }
+            let config = Configuration.getCached(atPath: currentFilePath) ??
+                Configuration(
+                    path: subConfigPath,
+                    rootPath: rootPath,
+                    optional: false,
+                    quiet: quiet,
+                    customRulesIdentifiers: customRuleIdentifiers ?? [],
+                    subConfigPreviousPaths: subConfigPreviousPaths + [currentFilePath]
+                )
+
+            self = merged(with: config)
+        }
     }
 
     // MARK: Equatable

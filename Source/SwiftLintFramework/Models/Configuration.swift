@@ -216,8 +216,6 @@ public struct Configuration: Hashable {
 
     // MARK: Equatable
     public static func == (lhs: Configuration, rhs: Configuration) -> Bool {
-        print("CALLED")
-
         return (lhs.warningThreshold == rhs.warningThreshold) &&
             (lhs.reporter == rhs.reporter) &&
             (lhs.rootPath == rhs.rootPath) &&

@@ -23,7 +23,7 @@ public struct Configuration: Hashable {
     public var rules: [Rule] { return rulesStorage.resultingRules }
 
     // MARK: - Initializers
-    public init?(
+    public init(
         rulesMode: RulesStorage.Mode = .default(disabled: [], optIn: []),
         included: [String] = [],
         excluded: [String] = [],
@@ -115,7 +115,7 @@ public struct Configuration: Hashable {
         let rulesMode: RulesStorage.Mode = enableAllRules ? .allEnabled : .default(disabled: [], optIn: [])
         if path.isEmpty || !FileManager.default.fileExists(atPath: fullPath) {
             if !optional { fail("File not found.") }
-            self.init(rulesMode: rulesMode, cachePath: cachePath)!
+            self.init(rulesMode: rulesMode, cachePath: cachePath)
             self.rootPath = rootPath
             return
         }
@@ -145,7 +145,7 @@ public struct Configuration: Hashable {
         } catch {
             fail("\(error)")
         }
-        self.init(rulesMode: rulesMode, cachePath: cachePath)!
+        self.init(rulesMode: rulesMode, cachePath: cachePath)
         setCached(atPath: fullPath)
     }
 
@@ -216,6 +216,8 @@ public struct Configuration: Hashable {
 
     // MARK: Equatable
     public static func == (lhs: Configuration, rhs: Configuration) -> Bool {
+        print("CALLED")
+
         return (lhs.warningThreshold == rhs.warningThreshold) &&
             (lhs.reporter == rhs.reporter) &&
             (lhs.rootPath == rhs.rootPath) &&

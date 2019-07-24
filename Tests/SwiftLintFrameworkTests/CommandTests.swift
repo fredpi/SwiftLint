@@ -345,10 +345,7 @@ class CommandTests: XCTestCase {
 
     func testSuperfluousDisableCommandsDisabledOnConfiguration() {
         let rulesMode = RulesStorage.Mode.default(disabled: ["superfluous_disable_command"], optIn: [])
-        guard let configuration = Configuration(rulesMode: rulesMode) else {
-            XCTFail("Failed to create configuration.")
-            return
-        }
+        let configuration = Configuration(rulesMode: rulesMode)
 
         XCTAssertEqual(
             violations("// swiftlint:disable nesting\nprint(123)\n", config: configuration),

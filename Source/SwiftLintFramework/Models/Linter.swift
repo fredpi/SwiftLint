@@ -117,7 +117,7 @@ public struct Linter {
     fileprivate let configuration: Configuration
     fileprivate let compilerArguments: [String]
 
-    public init(file: File, configuration: Configuration = Configuration()!, cache: LinterCache? = nil,
+    public init(file: File, configuration: Configuration = Configuration(), cache: LinterCache? = nil,
                 compilerArguments: [String] = []) {
         self.file = file
         self.cache = cache

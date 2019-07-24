@@ -50,7 +50,7 @@ extension ConfigurationTests {
         func configuration(forWarningThreshold warningThreshold: Int?) -> Configuration {
             return Configuration(warningThreshold: warningThreshold,
                                  reporter: XcodeReporter.identifier,
-                                 ruleList: masterRuleList)!
+                                 ruleList: masterRuleList)
         }
         XCTAssertEqual(configuration(forWarningThreshold: 3)
             .merged(with: configuration(forWarningThreshold: 2)).warningThreshold,
@@ -68,8 +68,8 @@ extension ConfigurationTests {
     func testNestedWhitelistedRules() {
         let baseConfiguration = Configuration(rulesMode: .default(disabled: [],
                                                                   optIn: [ForceTryRule.description.identifier,
-                                                                          ForceCastRule.description.identifier]))!
-        let whitelistedConfiguration = Configuration(rulesMode: .whitelisted([TodoRule.description.identifier]))!
+                                                                          ForceCastRule.description.identifier]))
+        let whitelistedConfiguration = Configuration(rulesMode: .whitelisted([TodoRule.description.identifier]))
         XCTAssertTrue(baseConfiguration.contains(rule: TodoRule.self))
         XCTAssertEqual(whitelistedConfiguration.rules.count, 1)
         XCTAssertTrue(whitelistedConfiguration.rules[0] is TodoRule)

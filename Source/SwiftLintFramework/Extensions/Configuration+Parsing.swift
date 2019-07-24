@@ -54,8 +54,12 @@ extension Configuration {
         return .default
     }
 
-    public init?(dict: [String: Any], ruleList: RuleList = masterRuleList, enableAllRules: Bool = false,
-                 cachePath: String? = nil) {
+    public init?(
+        dict: [String: Any],
+        ruleList: RuleList = masterRuleList,
+        enableAllRules: Bool = false,
+        cachePath: String? = nil
+    ) {
         // Use either new 'opt_in_rules' or deprecated 'enabled_rules' for now.
         let optInRules = defaultStringArray(dict[Key.optInRules.rawValue] ?? dict[Key.enabledRules.rawValue])
 
@@ -84,73 +88,77 @@ extension Configuration {
         }
 
         let swiftlintVersion = dict[Key.swiftlintVersion.rawValue].map { ($0 as? String) ?? String(describing: $0) }
-        self.init(disabledRules: disabledRules,
-                  optInRules: optInRules,
-                  enableAllRules: enableAllRules,
-                  whitelistRules: whitelistRules,
-                  analyzerRules: analyzerRules,
-                  included: included,
-                  excluded: excluded,
-                  warningThreshold: dict[Key.warningThreshold.rawValue] as? Int,
-                  reporter: dict[Key.reporter.rawValue] as? String ?? XcodeReporter.identifier,
-                  ruleList: ruleList,
-                  allRulesWithConfigurations: allRulesWithConfigurations,
-                  swiftlintVersion: swiftlintVersion,
-                  cachePath: cachePath ?? dict[Key.cachePath.rawValue] as? String,
-                  indentation: indentation,
-                  dict: dict)
+        self.init(
+            disabledRules: disabledRules,
+            optInRules: optInRules,
+            enableAllRules: enableAllRules,
+            whitelistRules: whitelistRules,
+            analyzerRules: analyzerRules,
+            included: included,
+            excluded: excluded,
+            warningThreshold: dict[Key.warningThreshold.rawValue] as? Int,
+            reporter: dict[Key.reporter.rawValue] as? String ?? XcodeReporter.identifier,
+            ruleList: ruleList,
+            allRulesWithConfigurations: allRulesWithConfigurations,
+            swiftlintVersion: swiftlintVersion,
+            cachePath: cachePath ?? dict[Key.cachePath.rawValue] as? String,
+            indentation: indentation,
+            dict: dict
+        )
     }
 
-    private init?(disabledRules: [String],
-                  optInRules: [String],
-                  enableAllRules: Bool,
-                  whitelistRules: [String],
-                  analyzerRules: [String],
-                  included: [String],
-                  excluded: [String],
-                  warningThreshold: Int?,
-                  reporter: String = XcodeReporter.identifier,
-                  ruleList: RuleList = masterRuleList,
-                  allRulesWithConfigurations: [Rule]?,
-                  swiftlintVersion: String?,
-                  cachePath: String?,
-                  indentation: IndentationStyle,
-                  dict: [String: Any]) {
-        let rulesMode: RulesStorage.Mode
-        if enableAllRules {
-            rulesMode = .allEnabled
-        } else if !whitelistRules.isEmpty {
-            if !disabledRules.isEmpty || !optInRules.isEmpty {
-                queuedPrintError("'\(Key.disabledRules.rawValue)' or " +
-                    "'\(Key.optInRules.rawValue)' cannot be used in combination " +
-                    "with '\(Key.whitelistRules.rawValue)'")
-                return nil
-            }
-            rulesMode = .whitelisted(whitelistRules + analyzerRules)
-        } else {
-            rulesMode = .default(disabled: disabledRules, optIn: optInRules + analyzerRules)
-        }
+    private init?(
+        disabledRules: [String],
+        optInRules: [String],
+        enableAllRules: Bool,
+        whitelistRules: [String],
+        analyzerRules: [String],
+        included: [String],
+        excluded: [String],
+        warningThreshold: Int?,
+        reporter: String = XcodeReporter.identifier,
+        ruleList: RuleList = masterRuleList,
+        allRulesWithConfigurations: [Rule]?,
+        swiftlintVersion: String?,
+        cachePath: String?,
+        indentation: IndentationStyle,
+        dict: [String: Any]
+    ) {
+        guard let rulesMode = RulesStorage.Mode(
+            enableAllRules: enableAllRules,
+            whitelistRules: whitelistRules,
+            optInRules: optInRules,
+            disabledRules: disabledRules,
+            analyzerRules: analyzerRules
+        ) else { return nil }
 
-        Configuration.validateConfiguredRulesAreEnabled(configurationDictionary: dict, ruleList: ruleList,
-                                                        rulesMode: rulesMode)
+        Configuration.validateConfiguredRulesAreEnabled(
+            configurationDictionary: dict,
+            ruleList: ruleList,
+            rulesMode: rulesMode
+        )
 
-        self.init(rulesMode: rulesMode,
-                  included: included,
-                  excluded: excluded,
-                  warningThreshold: warningThreshold,
-                  reporter: reporter,
-                  ruleList: ruleList,
-                  allRulesWithConfigurations: allRulesWithConfigurations,
-                  swiftlintVersion: swiftlintVersion,
-                  cachePath: cachePath,
-                  indentation: indentation)
+        self.init(
+            rulesMode: rulesMode,
+            included: included,
+            excluded: excluded,
+            warningThreshold: warningThreshold,
+            reporter: reporter,
+            ruleList: ruleList,
+            allRulesWithConfigurations: allRulesWithConfigurations,
+            swiftlintVersion: swiftlintVersion,
+            cachePath: cachePath,
+            indentation: indentation
+        )
     }
 
-    private static func warnAboutDeprecations(configurationDictionary dict: [String: Any],
-                                              disabledRules: [String] = [],
-                                              optInRules: [String] = [],
-                                              whitelistRules: [String] = [],
-                                              ruleList: RuleList) {
+    private static func warnAboutDeprecations(
+        configurationDictionary dict: [String: Any],
+        disabledRules: [String] = [],
+        optInRules: [String] = [],
+        whitelistRules: [String] = [],
+        ruleList: RuleList
+    ) {
         // Deprecation warning for "enabled_rules"
         if dict[Key.enabledRules.rawValue] != nil {
             queuedPrintError("'\(Key.enabledRules.rawValue)' has been renamed to " +

@@ -69,22 +69,14 @@ public class RulesStorage {
     public lazy var resultingRules: [Rule] = {
         var resultingRules = [Rule]()
 
-        // Fetch valid rule identifiers
-        let regularRuleIdentifiers = allRulesWithConfigurations.map { type(of: $0).description.identifier }
-        let configurationCustomRulesIdentifiers =
-            (allRulesWithConfigurations.first { $0 is CustomRules } as? CustomRules)?
-            .configuration.customRuleConfigurations.map { $0.identifier } ?? []
-        let validRuleIdentifiers = regularRuleIdentifiers + configurationCustomRulesIdentifiers
-
         // Apply mode to allRulesWithConfigurations
         switch mode {
         case .allEnabled:
             resultingRules = allRulesWithConfigurations
 
         case let .whitelisted(whitelistedRuleIdentifiers):
-            let validWhitelistedRuleIdentifiers = validateRuleIdentifiers(
-                ruleIdentifiers: whitelistedRuleIdentifiers.map(aliasResolver),
-                validRuleIdentifiers: validRuleIdentifiers
+            let validWhitelistedRuleIdentifiers = validated(
+                ruleIdentifiers: whitelistedRuleIdentifiers.map(aliasResolver)
             )
 
             resultingRules = allRulesWithConfigurations.filter { rule in
@@ -92,14 +84,8 @@ public class RulesStorage {
             }
 
         case let .default(disabledRuleIdentifiers, optInRuleIdentifiers):
-            let validDisabledRuleIdentifiers = validateRuleIdentifiers(
-                ruleIdentifiers: disabledRuleIdentifiers.map(aliasResolver),
-                validRuleIdentifiers: validRuleIdentifiers
-            )
-            let validOptInRuleIdentifiers = validateRuleIdentifiers(
-                ruleIdentifiers: optInRuleIdentifiers.map(aliasResolver),
-                validRuleIdentifiers: validRuleIdentifiers
-            )
+            let validDisabledRuleIdentifiers = validated(ruleIdentifiers: disabledRuleIdentifiers.map(aliasResolver))
+            let validOptInRuleIdentifiers = validated(ruleIdentifiers: optInRuleIdentifiers.map(aliasResolver))
 
             resultingRules = allRulesWithConfigurations.filter { rule in
                 let id = type(of: rule).description.identifier
@@ -115,13 +101,16 @@ public class RulesStorage {
     public lazy var disabledRuleIdentifiers: [String] = {
         switch mode {
         case let .default(disabled, _):
-            return disabled.sorted(by: <)
+            return validated(ruleIdentifiers: disabled.sorted(by: <), silent: true)
 
         case let .whitelisted(whitelisted):
-            return allRulesWithConfigurations
-                .map { type(of: $0).description.identifier }
-                .filter { !whitelisted.contains($0) }
-                .sorted(by: <)
+            return validated(
+                ruleIdentifiers: allRulesWithConfigurations
+                    .map { type(of: $0).description.identifier }
+                    .filter { !whitelisted.contains($0) }
+                    .sorted(by: <),
+                silent: true
+            )
 
         case .allEnabled:
             return []
@@ -137,16 +126,27 @@ public class RulesStorage {
 
     // MARK: - Methods
     /// Validate that all rule identifiers map to a defined rule and warn about duplicates
-    private func validateRuleIdentifiers(ruleIdentifiers: [String], validRuleIdentifiers: [String]) -> [String] {
-        let invalidRuleIdentifiers = ruleIdentifiers.filter { !validRuleIdentifiers.contains($0) }
-        if !invalidRuleIdentifiers.isEmpty {
-            for invalidRuleIdentifier in invalidRuleIdentifiers {
-                queuedPrintError("Configuration Error: '\(invalidRuleIdentifier)' is not a valid rule identifier")
-            }
+    private func validated(ruleIdentifiers: [String], silent: Bool = false) -> [String] {
+        // Fetch valid rule identifiers
+        let regularRuleIdentifiers = allRulesWithConfigurations.map { type(of: $0).description.identifier }
+        let configurationCustomRulesIdentifiers =
+            (allRulesWithConfigurations.first { $0 is CustomRules } as? CustomRules)?
+                .configuration.customRuleConfigurations.map { $0.identifier } ?? []
+        let validRuleIdentifiers = regularRuleIdentifiers + configurationCustomRulesIdentifiers
 
-            queuedPrintError("Valid rule identifiers:\n\(validRuleIdentifiers.sorted().joined(separator: "\n"))")
+        if !silent {
+            // Process invalid rule identifiers
+            let invalidRuleIdentifiers = ruleIdentifiers.filter { !validRuleIdentifiers.contains($0) }
+            if !invalidRuleIdentifiers.isEmpty {
+                for invalidRuleIdentifier in invalidRuleIdentifiers {
+                    queuedPrintError("Configuration Warning: '\(invalidRuleIdentifier)' is not a valid rule identifier")
+                }
+
+                queuedPrintError("Valid rule identifiers:\n\(validRuleIdentifiers.sorted().joined(separator: "\n"))")
+            }
         }
 
+        // Return valid rule identifiers
         return ruleIdentifiers.filter(validRuleIdentifiers.contains)
     }
 

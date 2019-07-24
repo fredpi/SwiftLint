@@ -26,16 +26,13 @@ public struct RuleList {
         aliases = tmpAliases
     }
 
-    internal func configuredRules(with dictionary: [String: Any]) throws -> [Rule] {
+    internal func allRules(configurationDict: [String: Any] = [:]) throws -> [Rule] {
         var rules = [String: Rule]()
 
-        for (key, configuration) in dictionary {
-            guard let identifier = identifier(for: key), let ruleType = list[identifier] else {
-                continue
-            }
-            guard rules[identifier] == nil else {
-                throw RuleListError.duplicatedConfigurations(rule: ruleType)
-            }
+        // Add rules where configuration exists
+        for (key, configuration) in configurationDict {
+            guard let identifier = identifier(for: key), let ruleType = list[identifier] else { continue }
+            guard rules[identifier] == nil else { throw RuleListError.duplicatedConfigurations(rule: ruleType) }
             do {
                 let configuredRule = try ruleType.init(configuration: configuration)
                 rules[identifier] = configuredRule
@@ -45,6 +42,7 @@ public struct RuleList {
             }
         }
 
+        // Add remaining rules without configuring them
         for (identifier, ruleType) in list where rules[identifier] == nil {
             rules[identifier] = ruleType.init()
         }

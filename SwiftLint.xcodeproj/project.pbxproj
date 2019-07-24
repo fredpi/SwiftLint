@@ -230,6 +230,7 @@
 		C946FECB1EAE67EE007DD778 /* LetVarWhitespaceRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = C946FEC91EAE5E20007DD778 /* LetVarWhitespaceRule.swift */; };
 		C9802F2F1E0C8AEE008AB27F /* TrailingCommaRuleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9802F2E1E0C8AEE008AB27F /* TrailingCommaRuleTests.swift */; };
 		CC26ED07204DEB510013BBBC /* RuleIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC26ED05204DE86E0013BBBC /* RuleIdentifier.swift */; };
+		CCB97C3622E89260002F5458 /* RulesStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB97C3422E89257002F5458 /* RulesStorage.swift */; };
 		CCD8B87920559D1E00B75847 /* DisableAllTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD8B87720559C4A00B75847 /* DisableAllTests.swift */; };
 		CE8178ED1EAC039D0063186E /* UnusedOptionalBindingConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8178EB1EAC02CD0063186E /* UnusedOptionalBindingConfiguration.swift */; };
 		D0AAAB5019FB0960007B24B3 /* SwiftLintFramework.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = D0D1216D19E87B05005E4BAA /* SwiftLintFramework.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -703,6 +704,7 @@
 		C946FEC91EAE5E20007DD778 /* LetVarWhitespaceRule.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LetVarWhitespaceRule.swift; sourceTree = "<group>"; };
 		C9802F2E1E0C8AEE008AB27F /* TrailingCommaRuleTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TrailingCommaRuleTests.swift; sourceTree = "<group>"; };
 		CC26ED05204DE86E0013BBBC /* RuleIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleIdentifier.swift; sourceTree = "<group>"; };
+		CCB97C3422E89257002F5458 /* RulesStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesStorage.swift; sourceTree = "<group>"; };
 		CCD8B87720559C4A00B75847 /* DisableAllTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisableAllTests.swift; sourceTree = "<group>"; };
 		CE8178EB1EAC02CD0063186E /* UnusedOptionalBindingConfiguration.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnusedOptionalBindingConfiguration.swift; sourceTree = "<group>"; };
 		D0D1211B19E87861005E4BAA /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; usesTabs = 0; };
@@ -1603,6 +1605,7 @@
 				D48B51201F4F5DEF0068AB98 /* RuleList+Documentation.swift */,
 				D401D9251ED85EF0005DA5D4 /* RuleKind.swift */,
 				E88DEA781B098D4400A66CB0 /* RuleParameter.swift */,
+				CCB97C3422E89257002F5458 /* RulesStorage.swift */,
 				E88DEA6A1B0983FE00A66CB0 /* StyleViolation.swift */,
 				D4A893341E15824100BF954D /* SwiftVersion.swift */,
 				D4C27BFD1E12D53F00DF713E /* Version.swift */,
@@ -1979,6 +1982,7 @@
 				E87E4A091BFB9CAE00FCFE46 /* SyntaxKind+SwiftLint.swift in Sources */,
 				3B0B14541C505D6300BE82F7 /* SeverityConfiguration.swift in Sources */,
 				827009FF20FE26C500ECA185 /* TypeContentsOrderRule.swift in Sources */,
+				CCB97C3622E89260002F5458 /* RulesStorage.swift in Sources */,
 				E88198551BEA949A00333A11 /* ControlStatementRule.swift in Sources */,
 				584B0D3A2112BA78002F7E25 /* SonarQubeReporter.swift in Sources */,
 				E57B23C11B1D8BF000DEA512 /* ReturnArrowWhitespaceRule.swift in Sources */,

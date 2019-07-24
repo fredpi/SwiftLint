@@ -71,9 +71,9 @@ extension Configuration {
         Configuration.warnAboutDeprecations(configurationDictionary: dict, disabledRules: disabledRules,
                                             optInRules: optInRules, whitelistRules: whitelistRules, ruleList: ruleList)
 
-        let configuredRules: [Rule]
+        let allRulesWithConfigurations: [Rule]
         do {
-            configuredRules = try ruleList.configuredRules(with: dict)
+            allRulesWithConfigurations = try ruleList.allRules(configurationDict: dict)
         } catch RuleListError.duplicatedConfigurations(let ruleType) {
             let aliases = ruleType.description.deprecatedAliases.map { "'\($0)'" }.joined(separator: ", ")
             let identifier = ruleType.description.identifier
@@ -94,7 +94,7 @@ extension Configuration {
                   warningThreshold: dict[Key.warningThreshold.rawValue] as? Int,
                   reporter: dict[Key.reporter.rawValue] as? String ?? XcodeReporter.identifier,
                   ruleList: ruleList,
-                  configuredRules: configuredRules,
+                  allRulesWithConfigurations: allRulesWithConfigurations,
                   swiftlintVersion: swiftlintVersion,
                   cachePath: cachePath ?? dict[Key.cachePath.rawValue] as? String,
                   indentation: indentation,
@@ -111,12 +111,12 @@ extension Configuration {
                   warningThreshold: Int?,
                   reporter: String = XcodeReporter.identifier,
                   ruleList: RuleList = masterRuleList,
-                  configuredRules: [Rule]?,
+                  allRulesWithConfigurations: [Rule]?,
                   swiftlintVersion: String?,
                   cachePath: String?,
                   indentation: IndentationStyle,
                   dict: [String: Any]) {
-        let rulesMode: RulesMode
+        let rulesMode: RulesStorage.Mode
         if enableAllRules {
             rulesMode = .allEnabled
         } else if !whitelistRules.isEmpty {
@@ -140,7 +140,7 @@ extension Configuration {
                   warningThreshold: warningThreshold,
                   reporter: reporter,
                   ruleList: ruleList,
-                  configuredRules: configuredRules,
+                  allRulesWithConfigurations: allRulesWithConfigurations,
                   swiftlintVersion: swiftlintVersion,
                   cachePath: cachePath,
                   indentation: indentation)
@@ -189,9 +189,11 @@ extension Configuration {
         }
     }
 
-    private static func validateConfiguredRulesAreEnabled(configurationDictionary dict: [String: Any],
-                                                          ruleList: RuleList,
-                                                          rulesMode: RulesMode) {
+    private static func validateConfiguredRulesAreEnabled(
+        configurationDictionary dict: [String: Any],
+        ruleList: RuleList,
+        rulesMode: RulesStorage.Mode
+    ) {
         for key in dict.keys where !validGlobalKeys.contains(key) {
             guard let identifier = ruleList.identifier(for: key),
                 let rule = ruleList.list[identifier] else {

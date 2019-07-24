@@ -45,9 +45,7 @@ public class RulesStorage {
                 validRuleIdentifiers: validRuleIdentifiers
             )
 
-            // Warn if a whitelist rule identifier is listed multiple times
-            // Continue even if it's the case, as this is not a fatal error
-            _ = containsDuplicateIdentifiers(validWhitelistedRuleIdentifiers)
+            warnAboutDuplicates(in: validWhitelistedRuleIdentifiers)
 
             return allRulesWithConfigurations.filter { rule in
                 validWhitelistedRuleIdentifiers.contains(type(of: rule).description.identifier)
@@ -63,10 +61,8 @@ public class RulesStorage {
                 validRuleIdentifiers: validRuleIdentifiers
             )
 
-            // Warn if a disable / opt-in rule identifier is listed multiple times
-            // Continue even if it's the case, as this is not a fatal error
-            _ = containsDuplicateIdentifiers(validDisabledRuleIdentifiers)
-            _ = containsDuplicateIdentifiers(validOptInRuleIdentifiers)
+            warnAboutDuplicates(in: validDisabledRuleIdentifiers)
+            warnAboutDuplicates(in: validOptInRuleIdentifiers)
 
             return allRulesWithConfigurations.filter { rule in
                 let id = type(of: rule).description.identifier
@@ -89,28 +85,26 @@ public class RulesStorage {
         let invalidRuleIdentifiers = ruleIdentifiers.filter { !validRuleIdentifiers.contains($0) }
         if !invalidRuleIdentifiers.isEmpty {
             for invalidRuleIdentifier in invalidRuleIdentifiers {
-                queuedPrintError("configuration error: '\(invalidRuleIdentifier)' is not a valid rule identifier")
+                queuedPrintError("Configuration Error: '\(invalidRuleIdentifier)' is not a valid rule identifier")
             }
-            let listOfValidRuleIdentifiers = validRuleIdentifiers.sorted().joined(separator: "\n")
-            queuedPrintError("Valid rule identifiers:\n\(listOfValidRuleIdentifiers)")
+
+            queuedPrintError("Valid rule identifiers:\n\(validRuleIdentifiers.sorted().joined(separator: "\n"))")
         }
 
         return ruleIdentifiers.filter(validRuleIdentifiers.contains)
     }
 
     /// Validates that rule identifiers aren't listed multiple times
-    private func containsDuplicateIdentifiers(_ identifiers: [String]) -> Bool {
-        guard Set(identifiers).count != identifiers.count else { return false }
-
-        let duplicateRules = identifiers.reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
-            .filter { $0.1 > 1 }
-        queuedPrintError(
-            duplicateRules.map { rule in
-                "configuration error: '\(rule.0)' is listed \(rule.1) times"
-            }.joined(separator: "\n")
-        )
-
-        return true
+    private func warnAboutDuplicates(in identifiers: [String]) {
+        if Set(identifiers).count != identifiers.count {
+            let duplicateRules = identifiers.reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
+                .filter { $0.1 > 1 }
+            queuedPrintError(
+                duplicateRules
+                    .map { rule in "Configuration Error: '\(rule.0)' is listed \(rule.1) times" }
+                    .joined(separator: "\n")
+            )
+        }
     }
 
     // MARK: Merging
@@ -150,24 +144,26 @@ public class RulesStorage {
         }
 
         // Merge allRulesWithConfigurations
-        var newAllRulesWithConfigurations = Set(sub.allRulesWithConfigurations.map(HashableRule.init))
+        let newAllRulesWithConfigurations = Set(sub.allRulesWithConfigurations.map(HashableRule.init))
             .union(allRulesWithConfigurations.map(HashableRule.init))
             .map { $0.rule }
-        mergeCustomRules(in: &newAllRulesWithConfigurations, mode: newMode, with: sub)
 
-        // Assemble merged RulesStorage
+        // Assemble & return merged RulesStorage
         return RulesStorage(
             mode: newMode,
-            allRulesWithConfigurations: allRulesWithConfigurations,
-            aliasResolver: { self.aliasResolver(sub.aliasResolver($0)) }
+            allRulesWithConfigurations: merged(customRules: newAllRulesWithConfigurations, mode: newMode, with: sub),
+            aliasResolver: { sub.aliasResolver(self.aliasResolver($0)) }
         )
     }
 
-    private func mergeCustomRules(in rules: inout [Rule], mode: Mode, with sub: RulesStorage) {
+    private func merged(customRules rules: [Rule], mode: Mode, with sub: RulesStorage) -> [Rule] {
         guard
-            let thisCustomRules = (resultingRules.first { $0 is CustomRules }) as? CustomRules,
-            let otherCustomRules = (sub.resultingRules.first { $0 is CustomRules }) as? CustomRules
-        else { return } // TODO: Handle properly
+            let customRulesRule = (allRulesWithConfigurations.first { $0 is CustomRules }) as? CustomRules,
+            let subCustomRulesRule = (sub.allRulesWithConfigurations.first { $0 is CustomRules }) as? CustomRules
+        else {
+            // Merging is only needed if both parent & sub have a custom rules rule
+            return rules
+        }
 
         let customRulesFilter: (RegexConfiguration) -> (Bool)
         switch mode {
@@ -181,16 +177,14 @@ public class RulesStorage {
             customRulesFilter = { !disabledRules.contains($0.identifier) }
         }
 
-        var customRules = CustomRules()
         var configuration = CustomRulesConfiguration()
+        configuration.customRuleConfigurations = Set(customRulesRule.configuration.customRuleConfigurations)
+            .union(Set(subCustomRulesRule.configuration.customRuleConfigurations))
+            .filter(customRulesFilter)
 
-        configuration.customRuleConfigurations = Set(
-            thisCustomRules.configuration.customRuleConfigurations
-        ).union(
-            Set(otherCustomRules.configuration.customRuleConfigurations)
-        ).filter(customRulesFilter)
+        var customRules = CustomRules()
         customRules.configuration = configuration
 
-        rules = rules.filter { !($0 is CustomRules) } + [customRules]
+        return rules.filter { !($0 is CustomRules) } + [customRules]
     }
 }

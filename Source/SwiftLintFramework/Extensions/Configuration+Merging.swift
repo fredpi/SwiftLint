@@ -81,7 +81,7 @@ extension Configuration {
             return mergedRules
         }
         let customRulesFilter: (RegexConfiguration) -> (Bool)
-        switch configuration.rulesMode {
+        switch configuration.rulesWrapper.rulesMode {
         case .allEnabled:
             customRulesFilter = { _ in true }
         case let .whitelisted(whitelistedRules):
@@ -102,7 +102,7 @@ extension Configuration {
 
     private func mergingRules(with configuration: Configuration) -> [Rule] {
         let regularMergedRules: [Rule]
-        switch configuration.rulesMode {
+        switch configuration.rulesWrapper.rulesMode {
         case .allEnabled:
             // Technically not possible yet as it's not configurable in a .swiftlint.yml file,
             // but implemented for completeness
@@ -154,7 +154,7 @@ extension Configuration {
         let includedAndExcluded = mergedIncludedAndExcluded(with: configuration)
 
         return Configuration(
-            rulesMode: configuration.rulesMode, // Use the rulesMode used to build the merged configuration
+            rulesWrapper: rulesWrapper, // TODO: Implement merging for rulesWrapper
             included: includedAndExcluded.included,
             excluded: includedAndExcluded.excluded,
             // The minimum warning threshold if both exist, otherwise the nested,
@@ -163,7 +163,6 @@ extension Configuration {
                 return min(configuration.warningThreshold ?? .max, warningThreshold)
             } ?? configuration.warningThreshold,
             reporter: reporter, // Always use the parent reporter
-            rules: mergingRules(with: configuration),
             cachePath: cachePath, // Always use the parent cache path
             rootPath: configuration.rootPath,
             indentation: configuration.indentation

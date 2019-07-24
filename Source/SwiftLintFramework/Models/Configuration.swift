@@ -9,6 +9,33 @@ public struct Configuration: Hashable {
         case allEnabled
     }
 
+    internal struct RulesWrapper {
+        let ruleList: RuleList
+        let configured: [Rule]
+        let rulesMode: RulesMode
+        let customRulesIdentifiers: [String]
+
+        let rules: [Rule]
+
+        init?(ruleList: RuleList, configured: [Rule], rulesMode: RulesMode, customRulesIdentifiers: [String]) {
+            self.ruleList = ruleList
+            self.configured = configured
+            self.rulesMode = rulesMode
+            self.customRulesIdentifiers = customRulesIdentifiers
+
+            guard let rules = enabledRules(
+                from: configured,
+                with: rulesMode,
+                aliasResolver: { ruleList.identifier(for: $0) ?? $0 },
+                customRulesIdentifiers: customRulesIdentifiers
+            ) else {
+                return nil
+            }
+
+            self.rules = rules
+        }
+    }
+
     // MARK: Properties
 
     public static let fileName = ".swiftlint.yml"
@@ -46,23 +73,27 @@ public struct Configuration: Hashable {
     // MARK: Rules Properties
 
     // All rules enabled in this configuration, derived from disabled, opt-in and whitelist rules
-    public let rules: [Rule]
+    public var rules: [Rule] {
+        return rulesWrapper.rules
+    }
 
-    internal let rulesMode: RulesMode
+    internal var rulesWrapper: RulesWrapper
 
     // MARK: Initializers
 
-    public init?(rulesMode: RulesMode = .default(disabled: [], optIn: []),
-                 included: [String] = [],
-                 excluded: [String] = [],
-                 warningThreshold: Int? = nil,
-                 reporter: String = XcodeReporter.identifier,
-                 ruleList: RuleList = masterRuleList,
-                 configuredRules: [Rule]? = nil,
-                 swiftlintVersion: String? = nil,
-                 cachePath: String? = nil,
-                 indentation: IndentationStyle = .default,
-                 customRulesIdentifiers: [String] = []) {
+    public init?(
+        rulesMode: RulesMode = .default(disabled: [], optIn: []),
+        included: [String] = [],
+        excluded: [String] = [],
+        warningThreshold: Int? = nil,
+        reporter: String = XcodeReporter.identifier,
+        ruleList: RuleList = masterRuleList,
+        configuredRules: [Rule]? = nil,
+        swiftlintVersion: String? = nil,
+        cachePath: String? = nil,
+        indentation: IndentationStyle = .default,
+        customRulesIdentifiers: [String] = [])
+    {
         if let pinnedVersion = swiftlintVersion, pinnedVersion != Version.current.value {
             queuedPrintError("Currently running SwiftLint \(Version.current.value) but " +
                 "configuration specified version \(pinnedVersion).")
@@ -73,40 +104,42 @@ public struct Configuration: Hashable {
             ?? (try? ruleList.configuredRules(with: [:]))
             ?? []
 
-        let handleAliasWithRuleList: (String) -> String = { ruleList.identifier(for: $0) ?? $0 }
 
-        guard let rules = enabledRules(from: configuredRules,
-                                       with: rulesMode,
-                                       aliasResolver: handleAliasWithRuleList,
-                                       customRulesIdentifiers: customRulesIdentifiers) else {
-            return nil
-        }
+        guard
+            let rulesWrapper = RulesWrapper(
+                ruleList: ruleList,
+                configured: configuredRules,
+                rulesMode: rulesMode,
+                customRulesIdentifiers: customRulesIdentifiers
+            )
+        else { return nil }
 
-        self.init(rulesMode: rulesMode,
-                  included: included,
-                  excluded: excluded,
-                  warningThreshold: warningThreshold,
-                  reporter: reporter,
-                  rules: rules,
-                  cachePath: cachePath,
-                  indentation: indentation)
+        self.init(
+            rulesWrapper: rulesWrapper,
+            included: included,
+            excluded: excluded,
+            warningThreshold: warningThreshold,
+            reporter: reporter,
+            cachePath: cachePath,
+            indentation: indentation
+        )
     }
 
-    internal init(rulesMode: RulesMode,
-                  included: [String],
-                  excluded: [String],
-                  warningThreshold: Int?,
-                  reporter: String,
-                  rules: [Rule],
-                  cachePath: String?,
-                  rootPath: String? = nil,
-                  indentation: IndentationStyle) {
-        self.rulesMode = rulesMode
+    internal init(
+        rulesWrapper: RulesWrapper,
+        included: [String],
+        excluded: [String],
+        warningThreshold: Int?,
+        reporter: String,
+        cachePath: String?,
+        rootPath: String? = nil,
+        indentation: IndentationStyle
+    ) {
+        self.rulesWrapper = rulesWrapper
         self.included = included
         self.excluded = excluded
         self.reporter = reporter
         self.cachePath = cachePath
-        self.rules = rules.sorted { type(of: $0).description.identifier < type(of: $1).description.identifier }
         self.rootPath = rootPath
         self.indentation = indentation
 
@@ -115,12 +148,11 @@ public struct Configuration: Hashable {
     }
 
     private init(_ configuration: Configuration) {
-        rulesMode = configuration.rulesMode
+        rulesWrapper = configuration.rulesWrapper
         included = configuration.included
         excluded = configuration.excluded
         warningThreshold = configuration.warningThreshold
         reporter = configuration.reporter
-        rules = configuration.rules
         cachePath = configuration.cachePath
         rootPath = configuration.rootPath
         indentation = configuration.indentation

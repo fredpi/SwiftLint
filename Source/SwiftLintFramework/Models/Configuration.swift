@@ -17,12 +17,10 @@ public struct Configuration: Hashable {
     internal var computedCacheDescription: String?
 
     // MARK: Rules Properties
-    internal var rulesStorage: RulesStorage
+    public var rulesStorage: RulesStorage
 
-    /// All rules enabled in this configuration, derived from disabled, opt-in and whitelist rules
-    public var rules: [Rule] {
-        return rulesStorage.resultingRules
-    }
+    /// Shortcut for rulesStorage.resultingRules
+    public var rules: [Rule] { return rulesStorage.resultingRules }
 
     // MARK: - Initializers
     public init?(

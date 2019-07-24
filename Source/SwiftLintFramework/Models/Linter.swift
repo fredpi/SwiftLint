@@ -267,7 +267,8 @@ public struct CollectedLinter {
             return []
         }
 
-        let allCustomIdentifiers = (configuration.rules.first { $0 is CustomRules } as? CustomRules)?
+        let allCustomIdentifiers =
+            (configuration.rules.first { $0 is CustomRules } as? CustomRules)?
             .configuration.customRuleConfigurations.map { RuleIdentifier($0.identifier) } ?? []
         let allRuleIdentifiers = masterRuleList.allValidIdentifiers().map { RuleIdentifier($0) }
         let allValidIdentifiers = Set(allCustomIdentifiers + allRuleIdentifiers + [.all])

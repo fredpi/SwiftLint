@@ -28,7 +28,7 @@ public class RulesStorage {
     private let aliasResolver: (String) -> String
 
     /// All rules enabled in this configuration, derived from rule mode (whitelist / optIn - disabled) & existing rules
-    lazy var resultingRules: [Rule] = {
+    public lazy var resultingRules: [Rule] = {
         let regularRuleIdentifiers = allRulesWithConfigurations.map { type(of: $0).description.identifier }
         let configurationCustomRulesIdentifiers =
             (allRulesWithConfigurations.first { $0 is CustomRules } as? CustomRules)?
@@ -69,6 +69,22 @@ public class RulesStorage {
                 if validDisabledRuleIdentifiers.contains(id) { return false }
                 return validOptInRuleIdentifiers.contains(id) || !(rule is OptInRule)
             }
+        }
+    }()
+
+    public lazy var disabledRuleIdentifiers: [String] = {
+        switch mode {
+        case let .default(disabled, _):
+            return disabled.sorted(by: <)
+
+        case let .whitelisted(whitelisted):
+            return allRulesWithConfigurations
+                .map { type(of: $0).description.identifier }
+                .filter { !whitelisted.contains($0) }
+                .sorted(by: <)
+
+        case .allEnabled:
+            return []
         }
     }()
 

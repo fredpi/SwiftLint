@@ -197,7 +197,7 @@ internal func makeConfig(_ ruleConfiguration: Any?, _ identifier: String,
         // The caller has provided a custom configuration for the rule under test
         return (try? ruleType.init(configuration: ruleConfiguration)).flatMap { configuredRule in
             let rules = skipDisableCommandTests ? [configuredRule] : [configuredRule, SuperfluousDisableCommandRule()]
-            return Configuration(rulesMode: .whitelisted(identifiers), configuredRules: rules)
+            return Configuration(rulesMode: .whitelisted(identifiers), allRulesWithConfigurations: rules)
         }
     }
     return Configuration(rulesMode: .whitelisted(identifiers))

@@ -5,16 +5,6 @@ import XCTest
 
 private let optInRules = masterRuleList.list.filter({ $0.1.init() is OptInRule }).map({ $0.0 })
 
-private extension Configuration {
-    var disabledRules: [String] {
-        let configuredRuleIDs = rules.map({ type(of: $0).description.identifier })
-        let defaultRuleIDs = Set(masterRuleList.list.values.filter({
-            !($0.init() is OptInRule)
-        }).map({ $0.description.identifier }))
-        return defaultRuleIDs.subtracting(configuredRuleIDs).sorted(by: <)
-    }
-}
-
 class ConfigurationTests: XCTestCase {
     func testInit() {
         XCTAssert(Configuration(dict: [:]) != nil,
@@ -28,7 +18,7 @@ class ConfigurationTests: XCTestCase {
             XCTFail("empty YAML string should yield non-nil Configuration")
             return
         }
-        XCTAssertEqual(config.disabledRules, [])
+        XCTAssertEqual(config.rulesStorage.disabledRuleIdentifiers, [])
         XCTAssertEqual(config.included, [])
         XCTAssertEqual(config.excluded, [])
         XCTAssertEqual(config.indentation, .spaces(count: 4))
@@ -45,7 +35,7 @@ class ConfigurationTests: XCTestCase {
         let config = Configuration(path: ".swiftlint.yml", rootPath: rootPath,
                                    optional: false, quiet: true)
 
-        XCTAssertEqual(config.disabledRules, expectedConfig.disabledRules)
+        XCTAssertEqual(config.rulesStorage.disabledRuleIdentifiers, expectedConfig.rulesStorage.disabledRuleIdentifiers)
         XCTAssertEqual(config.included, expectedConfig.included)
         XCTAssertEqual(config.excluded, expectedConfig.excluded)
         XCTAssertEqual(config.indentation, expectedConfig.indentation)
@@ -99,7 +89,7 @@ class ConfigurationTests: XCTestCase {
 
     func testDisabledRules() {
         let disabledConfig = Configuration(dict: ["disabled_rules": ["nesting", "todo"]])!
-        XCTAssertEqual(disabledConfig.disabledRules,
+        XCTAssertEqual(disabledConfig.rulesStorage.disabledRuleIdentifiers,
                        ["nesting", "todo"],
                        "initializing Configuration with valid rules in Dictionary should succeed")
         let expectedIdentifiers = Set(masterRuleList.list.keys
@@ -115,7 +105,7 @@ class ConfigurationTests: XCTestCase {
         let bogusRule = "no_sprites_with_elf_shoes"
         let configuration = Configuration(dict: ["disabled_rules": [validRule, bogusRule]])!
 
-        XCTAssertEqual(configuration.disabledRules,
+        XCTAssertEqual(configuration.rulesStorage.disabledRuleIdentifiers,
                        [validRule],
                        "initializing Configuration with valid rules in YAML string should succeed")
         let expectedIdentifiers = Set(masterRuleList.list.keys
@@ -241,14 +231,26 @@ class ConfigurationTests: XCTestCase {
                   expectedConfig.rules.filter { abc in !config.rules.contains { $0.isEqualTo(abc) } }.map { "\($0)" }
             )
 
-//            XCTAssertEqual(
-//                config.rules.map { type(of: $0).description },
-//                expectedConfig.rules.map { type(of: $0).description }
-//            )
-            XCTAssertEqual(config.disabledRules, expectedConfig.disabledRules)
-            XCTAssertEqual(config.customRuleIdentifiers, expectedConfig.customRuleIdentifiers)
-            XCTAssertEqual(config.included, expectedConfig.included)
-            XCTAssertEqual(config.excluded, expectedConfig.excluded)
+            XCTAssertEqual(
+                Set(config.rulesStorage.disabledRuleIdentifiers),
+                Set(expectedConfig.rulesStorage.disabledRuleIdentifiers)
+            )
+            XCTAssertEqual(
+                Set(config.rules.map { type(of: $0).description.identifier }),
+                Set(expectedConfig.rules.map { type(of: $0).description.identifier })
+            )
+            XCTAssertEqual(
+                Set(config.rules.map { $0.configurationDescription }),
+                Set(expectedConfig.rules.map { $0.configurationDescription })
+            )
+            XCTAssertEqual(
+                Set(config.included),
+                Set(expectedConfig.included)
+            )
+            XCTAssertEqual(
+                Set(config.excluded),
+                Set(expectedConfig.excluded)
+            )
         }
 
         FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)

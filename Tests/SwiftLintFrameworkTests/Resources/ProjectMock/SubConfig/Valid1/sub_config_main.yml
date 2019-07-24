@@ -1,0 +1,9 @@
+included:
+  - Test/Test1
+  - Test/Test2
+
+excluded:
+  - Test/Test1/Test
+  - Test/Test2/Test
+
+sub_config: sub_config_sub1.yml

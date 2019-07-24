@@ -120,13 +120,13 @@ extension Configuration {
             // Same here
             regularMergedRules = Set(
                 configuration.rules
-                    // Enable rules that are opt-in by the nested configuration
+                    // Enable rules that are opt-in by the child configuration
                     .filter { rule in
                         return optIn.contains(type(of: rule).description.identifier)
                     }
                     .map(HashableRule.init)
                 )
-                // And disable rules that are disabled by the nested configuration
+                // And disable rules that are disabled by the child configuration
                 .union(
                     rules.filter { rule in
                         return !disabled.contains(type(of: rule).description.identifier)

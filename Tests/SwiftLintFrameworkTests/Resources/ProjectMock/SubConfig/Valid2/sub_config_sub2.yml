@@ -1,0 +1,7 @@
+opt_in_rules:
+  - identifier_name
+
+disabled_rules:
+  - trailing_closure
+
+line_length: 80

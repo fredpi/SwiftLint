@@ -217,6 +217,60 @@ class ConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.lintablePaths(inPath: "", forceExclude: false), [])
     }
 
+    func testValidSubConfig() {
+        let previousWorkingDir = FileManager.default.currentDirectoryPath
+
+        for path in [projectMockPathSubConfigValid1, projectMockPathSubConfigValid2] {
+            FileManager.default.changeCurrentDirectoryPath(path)
+            let rootPath = path.stringByAppendingPathComponent("Mock.swift")
+            let config = Configuration(
+                path: "sub_config_main.yml",
+                rootPath: rootPath,
+                optional: false,
+                quiet: true
+            )
+
+            let expectedConfig = Configuration(
+                path: "sub_config_expected.yml",
+                rootPath: rootPath,
+                optional: false,
+                quiet: true
+            )
+            print(config.rules.filter { abc in !expectedConfig.rules.contains { $0.isEqualTo(abc) } }.map { "\($0)" },
+                  "\n\n",
+                  expectedConfig.rules.filter { abc in !config.rules.contains { $0.isEqualTo(abc) } }.map { "\($0)" }
+            )
+
+//            XCTAssertEqual(
+//                config.rules.map { type(of: $0).description },
+//                expectedConfig.rules.map { type(of: $0).description }
+//            )
+            XCTAssertEqual(config.disabledRules, expectedConfig.disabledRules)
+            XCTAssertEqual(config.customRuleIdentifiers, expectedConfig.customRuleIdentifiers)
+            XCTAssertEqual(config.included, expectedConfig.included)
+            XCTAssertEqual(config.excluded, expectedConfig.excluded)
+        }
+
+        FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)
+    }
+
+    func testInvalidSubConfig() {
+        let previousWorkingDir = FileManager.default.currentDirectoryPath
+
+        for path in [projectMockPathSubConfigFail1, projectMockPathSubConfigFail2] {
+            FileManager.default.changeCurrentDirectoryPath(path)
+            let rootPath = path.stringByAppendingPathComponent("Mock.swift")
+            _ = Configuration(
+                path: "sub_config_main.yml",
+                rootPath: rootPath,
+                optional: false,
+                quiet: true
+            )
+        }
+
+        FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)
+    }
+
     // MARK: - Testing Configuration Equality
 
     func testIsEqualTo() {

@@ -29,15 +29,19 @@ public class RulesStorage {
 
     /// All rules enabled in this configuration, derived from rule mode (whitelist / optIn - disabled) & existing rules
     public lazy var resultingRules: [Rule] = {
+        var resultingRules = [Rule]()
+
+        // Fetch valid rule identifiers
         let regularRuleIdentifiers = allRulesWithConfigurations.map { type(of: $0).description.identifier }
         let configurationCustomRulesIdentifiers =
             (allRulesWithConfigurations.first { $0 is CustomRules } as? CustomRules)?
             .configuration.customRuleConfigurations.map { $0.identifier } ?? []
         let validRuleIdentifiers = regularRuleIdentifiers + configurationCustomRulesIdentifiers
 
+        // Apply mode to allRulesWithConfigurations
         switch mode {
         case .allEnabled:
-            return allRulesWithConfigurations
+            resultingRules = allRulesWithConfigurations
 
         case let .whitelisted(whitelistedRuleIdentifiers):
             let validWhitelistedRuleIdentifiers = validateRuleIdentifiers(
@@ -45,9 +49,7 @@ public class RulesStorage {
                 validRuleIdentifiers: validRuleIdentifiers
             )
 
-            warnAboutDuplicates(in: validWhitelistedRuleIdentifiers)
-
-            return allRulesWithConfigurations.filter { rule in
+            resultingRules = allRulesWithConfigurations.filter { rule in
                 validWhitelistedRuleIdentifiers.contains(type(of: rule).description.identifier)
             }
 
@@ -61,15 +63,15 @@ public class RulesStorage {
                 validRuleIdentifiers: validRuleIdentifiers
             )
 
-            warnAboutDuplicates(in: validDisabledRuleIdentifiers)
-            warnAboutDuplicates(in: validOptInRuleIdentifiers)
-
-            return allRulesWithConfigurations.filter { rule in
+            resultingRules = allRulesWithConfigurations.filter { rule in
                 let id = type(of: rule).description.identifier
                 if validDisabledRuleIdentifiers.contains(id) { return false }
                 return validOptInRuleIdentifiers.contains(id) || !(rule is OptInRule)
             }
         }
+
+        // Sort by name
+        return resultingRules.sorted { type(of: $0).description.identifier < type(of: $1).description.identifier }
     }()
 
     public lazy var disabledRuleIdentifiers: [String] = {
@@ -96,7 +98,7 @@ public class RulesStorage {
     }
 
     // MARK: - Methods
-    /// Validate that all rule identifiers map to a defined rule
+    /// Validate that all rule identifiers map to a defined rule and warn about duplicates
     private func validateRuleIdentifiers(ruleIdentifiers: [String], validRuleIdentifiers: [String]) -> [String] {
         let invalidRuleIdentifiers = ruleIdentifiers.filter { !validRuleIdentifiers.contains($0) }
         if !invalidRuleIdentifiers.isEmpty {
@@ -107,7 +109,9 @@ public class RulesStorage {
             queuedPrintError("Valid rule identifiers:\n\(validRuleIdentifiers.sorted().joined(separator: "\n"))")
         }
 
-        return ruleIdentifiers.filter(validRuleIdentifiers.contains)
+        let validIdentifiers = ruleIdentifiers.filter(validRuleIdentifiers.contains)
+        warnAboutDuplicates(in: validIdentifiers)
+        return validIdentifiers
     }
 
     /// Validates that rule identifiers aren't listed multiple times

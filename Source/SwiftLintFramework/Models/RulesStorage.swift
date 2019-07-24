@@ -8,15 +8,30 @@ public class RulesStorage {
         case allEnabled
     }
 
+    fileprivate struct HashableRule: Hashable {
+        fileprivate let rule: Rule
+
+        fileprivate static func == (lhs: HashableRule, rhs: HashableRule) -> Bool {
+            // Don't use `isEqualTo` in case its internal implementation changes from
+            // using the identifier to something else, which could mess up with the `Set`
+            return type(of: lhs.rule).description.identifier == type(of: rhs.rule).description.identifier
+        }
+
+        fileprivate func hash(into hasher: inout Hasher) {
+            hasher.combine(type(of: rule).description.identifier)
+        }
+    }
+
     // MARK: - Properties
     private let mode: Mode
     private let allRulesWithConfigurations: [Rule]
     private let aliasResolver: (String) -> String
 
-    /// All rules enabled in this configuration, derived from rule mode (whitelist / optIn - disabled) and existing rules
+    /// All rules enabled in this configuration, derived from rule mode (whitelist / optIn - disabled) & existing rules
     lazy var resultingRules: [Rule] = {
         let regularRuleIdentifiers = allRulesWithConfigurations.map { type(of: $0).description.identifier }
-        let configurationCustomRulesIdentifiers = (allRulesWithConfigurations.first { $0 is CustomRules } as? CustomRules)?
+        let configurationCustomRulesIdentifiers =
+            (allRulesWithConfigurations.first { $0 is CustomRules } as? CustomRules)?
             .configuration.customRuleConfigurations.map { $0.identifier } ?? []
         let validRuleIdentifiers = regularRuleIdentifiers + configurationCustomRulesIdentifiers
 
@@ -89,23 +104,19 @@ public class RulesStorage {
 
         let duplicateRules = identifiers.reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
             .filter { $0.1 > 1 }
-        queuedPrintError(duplicateRules.map { rule in
-            "configuration error: '\(rule.0)' is listed \(rule.1) times"
-            }.joined(separator: "\n"))
+        queuedPrintError(
+            duplicateRules.map { rule in
+                "configuration error: '\(rule.0)' is listed \(rule.1) times"
+            }.joined(separator: "\n")
+        )
 
         return true
     }
 
     // MARK: Merging
     func merged(with sub: RulesStorage) -> RulesStorage {
+        // Merge mode
         let newMode: Mode
-        var newConfiguredRules: [Rule]
-
-        // Placeholder values TODO
-        newMode = .allEnabled
-        newConfiguredRules = []
-        // Placeholder values
-
         switch mode {
         case let .default(disabled, optIn):
             guard case let .default(subDisabled, subOptIn) = sub.mode else {
@@ -113,24 +124,38 @@ public class RulesStorage {
                 return sub
             }
 
-            print(disabled, subDisabled, optIn, subOptIn)
+            // Only use parent disabled / optIn if sub config doesn't tell the opposite
+            newMode = .default(
+                disabled: Array(Set(subDisabled).union(Set(disabled.filter { !subOptIn.contains($0) }))),
+                optIn: Array(Set(subOptIn).union(Set(optIn.filter { !subDisabled.contains($0) })))
+            )
 
-        case let .whitelisted(whitelisted):
+        case .whitelisted:
             guard case let .whitelisted(subWhitelisted) = sub.mode else {
                 // As the rule modes differ, we just return the child config
                 return sub
             }
 
-            print(whitelisted, subWhitelisted)
+            // Always use the sub whitelist
+            newMode = .whitelisted(subWhitelisted)
 
         case .allEnabled:
             guard case .allEnabled = sub.mode else {
                 // As the rule modes differ, we just return the child config
                 return sub
             }
+
+            // Stay in .allEnabled mode
+            newMode = .allEnabled
         }
 
-        mergeCustomRules(in: &newConfiguredRules, mode: newMode, with: sub)
+        // Merge allRulesWithConfigurations
+        var newAllRulesWithConfigurations = Set(sub.allRulesWithConfigurations.map(HashableRule.init))
+            .union(allRulesWithConfigurations.map(HashableRule.init))
+            .map { $0.rule }
+        mergeCustomRules(in: &newAllRulesWithConfigurations, mode: newMode, with: sub)
+
+        // Assemble merged RulesStorage
         return RulesStorage(
             mode: newMode,
             allRulesWithConfigurations: allRulesWithConfigurations,
@@ -168,41 +193,4 @@ public class RulesStorage {
 
         rules = rules.filter { !($0 is CustomRules) } + [customRules]
     }
-
-//    private func mergingRules(with configuration: Configuration) -> [Rule] {
-//        let regularMergedRules: [Rule]
-//        switch configuration.rulesStorage.rulesMode {
-//        case .allEnabled:
-//            // Technically not possible yet as it's not configurable in a .swiftlint.yml file,
-//            // but implemented for completeness
-//            regularMergedRules = configuration.rules
-//        case .whitelisted(let whitelistedRules):
-//            // Use an intermediate set to filter out duplicate rules when merging configurations
-//            // (always use the nested rule first if it exists)
-//            regularMergedRules = Set(configuration.rules.map(HashableRule.init))
-//                .union(rules.map(HashableRule.init))
-//                .map { $0.rule }
-//                .filter { rule in
-//                    return whitelistedRules.contains(type(of: rule).description.identifier)
-//            }
-//        case let .default(disabled, optIn):
-//            // Same here
-//            regularMergedRules = Set(
-//                configuration.rules
-//                    // Enable rules that are opt-in by the child configuration
-//                    .filter { rule in
-//                        return optIn.contains(type(of: rule).description.identifier)
-//                    }
-//                    .map(HashableRule.init)
-//                )
-//                // And disable rules that are disabled by the child configuration
-//                .union(
-//                    rules.filter { rule in
-//                        return !disabled.contains(type(of: rule).description.identifier)
-//                        }.map(HashableRule.init)
-//                )
-//                .map { $0.rule }
-//        }
-//        return regularMergedRules
-//    }
 }

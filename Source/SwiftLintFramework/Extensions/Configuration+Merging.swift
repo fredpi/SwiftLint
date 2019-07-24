@@ -57,20 +57,6 @@ extension Configuration {
         }
     }
 
-    private struct HashableRule: Hashable {
-        fileprivate let rule: Rule
-
-        fileprivate static func == (lhs: HashableRule, rhs: HashableRule) -> Bool {
-            // Don't use `isEqualTo` in case its internal implementation changes from
-            // using the identifier to something else, which could mess up with the `Set`
-            return type(of: lhs.rule).description.identifier == type(of: rhs.rule).description.identifier
-        }
-
-        fileprivate func hash(into hasher: inout Hasher) {
-            hasher.combine(type(of: rule).description.identifier)
-        }
-    }
-
     func mergedIncludedAndExcluded(with configuration: Configuration) -> (included: [String], excluded: [String]) {
         if rootDirectory != configuration.rootDirectory {
             // Configurations aren't on same level => use child configuration

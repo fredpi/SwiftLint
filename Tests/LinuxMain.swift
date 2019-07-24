@@ -171,8 +171,6 @@ extension ConfigurationTests {
         ("testForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre", testForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre),
         ("testLintablePaths", testLintablePaths),
         ("testGlobExcludePaths", testGlobExcludePaths),
-        ("testValidSubConfig", testValidSubConfig),
-        ("testInvalidSubConfig", testInvalidSubConfig),
         ("testIsEqualTo", testIsEqualTo),
         ("testIsNotEqualTo", testIsNotEqualTo),
         ("testCustomConfiguration", testCustomConfiguration),
@@ -1252,6 +1250,13 @@ extension StrongIBOutletRuleTests {
     ]
 }
 
+extension SubConfigTests {
+    static var allTests: [(String, (SubConfigTests) -> () throws -> Void)] = [
+        ("testValidSubConfig", testValidSubConfig),
+        ("testInvalidSubConfig", testInvalidSubConfig)
+    ]
+}
+
 extension SwitchCaseAlignmentRuleTests {
     static var allTests: [(String, (SwitchCaseAlignmentRuleTests) -> () throws -> Void)] = [
         ("testWithDefaultConfiguration", testWithDefaultConfiguration),
@@ -1691,6 +1696,7 @@ XCTMain([
     testCase(StaticOperatorRuleTests.allTests),
     testCase(StrictFilePrivateRuleTests.allTests),
     testCase(StrongIBOutletRuleTests.allTests),
+    testCase(SubConfigTests.allTests),
     testCase(SwitchCaseAlignmentRuleTests.allTests),
     testCase(SwitchCaseOnNewlineRuleTests.allTests),
     testCase(SyntacticSugarRuleTests.allTests),

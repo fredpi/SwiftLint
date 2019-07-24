@@ -18,8 +18,10 @@ extension Configuration {
         let configurationSearchPath = pathNSString.appendingPathComponent(Configuration.fileName)
 
         // If a configuration exists and it isn't us, load and merge the configurations
-        if configurationSearchPath != configurationPath &&
-            FileManager.default.fileExists(atPath: configurationSearchPath) {
+        if
+            configurationSearchPath != configurationPath
+            && FileManager.default.fileExists(atPath: configurationSearchPath)
+        {
             let fullPath = pathNSString.absolutePathRepresentation()
             let config = Configuration.getCached(atPath: fullPath) ??
                 Configuration(

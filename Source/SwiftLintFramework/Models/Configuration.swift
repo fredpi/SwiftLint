@@ -16,6 +16,9 @@ public struct Configuration: Hashable {
 
     internal var computedCacheDescription: String?
 
+    class ConfigurationWrapper { var wrapped: Configuration? }
+    private var unmergedSubConfig = ConfigurationWrapper()
+
     // MARK: Rules Properties
     public var rulesStorage: RulesStorage
 
@@ -91,10 +94,16 @@ public struct Configuration: Hashable {
         indentation = configuration.indentation
     }
 
-    public init(path: String = Configuration.fileName, rootPath: String? = nil,
-                optional: Bool = true, quiet: Bool = false,
-                enableAllRules: Bool = false, cachePath: String? = nil,
-                subConfigPreviousPaths: [String] = []) {
+    public init(
+        path: String = Configuration.fileName,
+        rootPath: String? = nil,
+        optional: Bool = true,
+        quiet: Bool = false,
+        enableAllRules: Bool = false,
+        cachePath: String? = nil,
+        isSubConfig: Bool = false,
+        subConfigPreviousPaths: [String] = []
+    ) {
         let fullPath: String
         if let rootPath = rootPath, rootPath.isDirectory() {
             fullPath = path.bridge().absolutePathRepresentation(rootDirectory: rootPath)
@@ -132,7 +141,7 @@ public struct Configuration: Hashable {
             if let subConfigFile = dict[Key.subConfig.rawValue] as? String {
                 merge(
                     subConfigFile: subConfigFile, currentFilePath: fullPath, quiet: quiet,
-                    subConfigPreviousPaths: subConfigPreviousPaths
+                    isSubConfig: isSubConfig, subConfigPreviousPaths: subConfigPreviousPaths
                 )
             }
 
@@ -168,6 +177,7 @@ public struct Configuration: Hashable {
         subConfigFile: String,
         currentFilePath: String,
         quiet: Bool,
+        isSubConfig: Bool,
         subConfigPreviousPaths: [String]
     ) {
         let fail = { (msg: String) in
@@ -207,10 +217,24 @@ public struct Configuration: Hashable {
                     rootPath: rootPath,
                     optional: false,
                     quiet: quiet,
+                    isSubConfig: true,
                     subConfigPreviousPaths: subConfigPreviousPaths + [currentFilePath]
                 )
 
-            self = merged(with: config)
+            // Let the topmost configuration do the merging in the end
+            // This results in a semantically correct ((A <- B) <- C) merge, instead of a wrong (A <- (B <- C)) merge
+            unmergedSubConfig.wrapped = config
+            if !isSubConfig {
+                func mergeUnmergedSubconfigs(of subConfig: Configuration, into primaryConfig: inout Configuration) {
+                    if let unmergedSubConfig = subConfig.unmergedSubConfig.wrapped {
+                        subConfig.unmergedSubConfig.wrapped = nil
+                        primaryConfig = primaryConfig.merged(with: unmergedSubConfig)
+                        mergeUnmergedSubconfigs(of: unmergedSubConfig, into: &primaryConfig)
+                    }
+                }
+
+                mergeUnmergedSubconfigs(of: self, into: &self)
+            }
         }
     }
 

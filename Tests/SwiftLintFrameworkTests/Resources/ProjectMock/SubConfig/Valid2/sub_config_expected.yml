@@ -3,8 +3,14 @@ opt_in_rules:
 
 disabled_rules:
   - force_cast
+  - private_outlet
+  - trailing_closure
 
 line_length: 80
+
+identifier_name:
+  excluded:
+    - abc
 
 included:
   - Test/Test1

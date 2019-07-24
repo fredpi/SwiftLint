@@ -1,5 +1,6 @@
 import Foundation
 
+// TODO: Improve alias handling
 public class RulesStorage {
     // MARK: - Subtypes
     public enum Mode {
@@ -61,8 +62,8 @@ public class RulesStorage {
     }
 
     // MARK: - Properties
+    public let allRulesWithConfigurations: [Rule]
     private let mode: Mode
-    private let allRulesWithConfigurations: [Rule]
     private let aliasResolver: (String) -> String
 
     /// All rules enabled in this configuration, derived from rule mode (whitelist / optIn - disabled) & existing rules
@@ -151,7 +152,7 @@ public class RulesStorage {
     }
 
     // MARK: Merging
-    func merged(with sub: RulesStorage) -> RulesStorage {
+    internal func merged(with sub: RulesStorage) -> RulesStorage {
         // Merge allRulesWithConfigurations
         let newAllRulesWithConfigurations = Set(sub.allRulesWithConfigurations.map(HashableRule.init))
             .union(allRulesWithConfigurations.map(HashableRule.init))
@@ -165,8 +166,10 @@ public class RulesStorage {
             case let .default(disabled, optIn):
                 // Only use parent disabled / optIn if sub config doesn't tell the opposite
                 newMode = .default(
-                    disabled: Set(subDisabled).union(Set(disabled.filter { !subOptIn.contains($0) })),
+                    disabled: Set(subDisabled).union(Set(disabled.filter { !subOptIn.contains($0) }))
+                        .filter { isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) == false },
                     optIn: Set(subOptIn).union(Set(optIn.filter { !subDisabled.contains($0) }))
+                        .filter { isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) == true }
                 )
 
             case let .whitelisted(whitelisted):
@@ -178,9 +181,14 @@ public class RulesStorage {
             case .allEnabled:
                 // Opt-in to every rule that isn't disabled via sub config
                 newMode = .default(
-                    disabled: subDisabled,
+                    disabled: subDisabled
+                        .filter { isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) == false },
                     optIn: Set(newAllRulesWithConfigurations.map { type(of: $0).description.identifier }
-                        .filter { $0 is OptInRule && !subDisabled.contains($0) })
+                        .filter {
+                            !subDisabled.contains($0)
+                                && isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) == true
+                        }
+                    )
                 )
             }
 
@@ -231,5 +239,10 @@ public class RulesStorage {
         customRules.configuration = configuration
 
         return rules.filter { !($0 is CustomRules) } + [customRules]
+    }
+
+    // MARK: Helpers
+    private func isOptInRule(_ identifier: String, allRulesWithConfigurations: [Rule]) -> Bool? {
+        return allRulesWithConfigurations.first { type(of: $0).description.identifier == identifier } is OptInRule
     }
 }

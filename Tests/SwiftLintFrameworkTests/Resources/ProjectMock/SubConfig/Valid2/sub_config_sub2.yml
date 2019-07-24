@@ -3,5 +3,10 @@ opt_in_rules:
 
 disabled_rules:
   - trailing_closure
+  - empty_count
 
 line_length: 80
+
+identifier_name:
+  excluded:
+    - abc

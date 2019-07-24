@@ -23,10 +23,6 @@ class SubConfigTests: XCTestCase, ProjectMock {
                 optional: false,
                 quiet: true
             )
-            print(config.rules.filter { abc in !expectedConfig.rules.contains { $0.isEqualTo(abc) } }.map { "\($0)" },
-                  "\n\n",
-                  expectedConfig.rules.filter { abc in !config.rules.contains { $0.isEqualTo(abc) } }.map { "\($0)" }
-            )
 
             XCTAssertEqual(
                 config.rulesStorage.disabledRuleIdentifiers,
@@ -36,9 +32,10 @@ class SubConfigTests: XCTestCase, ProjectMock {
                 config.rules.map { type(of: $0).description.identifier },
                 expectedConfig.rules.map { type(of: $0).description.identifier }
             )
+
             XCTAssertEqual(
-                config.rules.map { $0.configurationDescription },
-                expectedConfig.rules.map { $0.configurationDescription }
+                Set(config.rulesStorage.allRulesWithConfigurations.map { $0.configurationDescription }),
+                Set(expectedConfig.rulesStorage.allRulesWithConfigurations.map { $0.configurationDescription })
             )
             XCTAssertEqual(
                 Set(config.included),

@@ -29,14 +29,6 @@ extension ProjectMock {
         return projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Valid2")
     }
 
-    var projectMockPathSubConfigFail1: String {
-        return projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Fail1")
-    }
-
-    var projectMockPathSubConfigFail2: String {
-        return projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Fail2")
-    }
-
     var projectMockYAML0: String {
         return projectMockPathLevel0.stringByAppendingPathComponent(Configuration.fileName)
     }

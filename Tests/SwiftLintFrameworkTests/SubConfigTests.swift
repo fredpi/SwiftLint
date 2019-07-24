@@ -9,17 +9,16 @@ class SubConfigTests: XCTestCase, ProjectMock {
 
         for path in [projectMockPathSubConfigValid1, projectMockPathSubConfigValid2] {
             FileManager.default.changeCurrentDirectoryPath(path)
-            let rootPath = path.stringByAppendingPathComponent("Mock.swift")
             let config = Configuration(
                 path: "sub_config_main.yml",
-                rootPath: rootPath,
+                rootPath: path,
                 optional: false,
                 quiet: true
             )
 
             let expectedConfig = Configuration(
                 path: "sub_config_expected.yml",
-                rootPath: rootPath,
+                rootPath: path,
                 optional: false,
                 quiet: true
             )
@@ -44,23 +43,6 @@ class SubConfigTests: XCTestCase, ProjectMock {
             XCTAssertEqual(
                 Set(config.excluded),
                 Set(expectedConfig.excluded)
-            )
-        }
-
-        FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)
-    }
-
-    func testInvalidSubConfig() {
-        let previousWorkingDir = FileManager.default.currentDirectoryPath
-
-        for path in [projectMockPathSubConfigFail1, projectMockPathSubConfigFail2] {
-            FileManager.default.changeCurrentDirectoryPath(path)
-            let rootPath = path.stringByAppendingPathComponent("Mock.swift")
-            _ = Configuration(
-                path: "sub_config_main.yml",
-                rootPath: rootPath,
-                optional: false,
-                quiet: true
             )
         }
 

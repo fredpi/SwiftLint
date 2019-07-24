@@ -21,15 +21,12 @@ extension Configuration {
         if configurationSearchPath != configurationPath &&
             FileManager.default.fileExists(atPath: configurationSearchPath) {
             let fullPath = pathNSString.absolutePathRepresentation()
-            let customRuleIdentifiers = (rules.first(where: { $0 is CustomRules }) as? CustomRules)?
-                .configuration.customRuleConfigurations.map { $0.identifier }
             let config = Configuration.getCached(atPath: fullPath) ??
                 Configuration(
                     path: configurationSearchPath,
                     rootPath: fullPath,
                     optional: false,
-                    quiet: true,
-                    customRulesIdentifiers: customRuleIdentifiers ?? []
+                    quiet: true
                 )
             return merged(with: config)
         }
@@ -74,30 +71,35 @@ extension Configuration {
         }
     }
 
-    private func mergeCustomRules(mergedRules: [Rule], configuration: Configuration) -> [Rule] {
+    private func mergeCustomRules(in rules: inout [Rule], rulesMode: RulesMode, parent: RulesWrapper, sub: RulesWrapper) {
         guard
-            let thisCustomRules = rules.first(where: { $0 is CustomRules }) as? CustomRules,
-            let otherCustomRules = configuration.rules.first(where: { $0 is CustomRules }) as? CustomRules else {
-            return mergedRules
-        }
+            let thisCustomRules = (parent.configuredRules.first { $0 is CustomRules }) as? CustomRules,
+            let otherCustomRules = (sub.configuredRules.first { $0 is CustomRules }) as? CustomRules
+            else { return } // TODO: Handle properly
+
         let customRulesFilter: (RegexConfiguration) -> (Bool)
-        switch configuration.rulesWrapper.rulesMode {
+        switch rulesMode {
         case .allEnabled:
             customRulesFilter = { _ in true }
+
         case let .whitelisted(whitelistedRules):
             customRulesFilter = { whitelistedRules.contains($0.identifier) }
+
         case let .default(disabledRules, _):
             customRulesFilter = { !disabledRules.contains($0.identifier) }
         }
+
         var customRules = CustomRules()
         var configuration = CustomRulesConfiguration()
+
         configuration.customRuleConfigurations = Set(
             thisCustomRules.configuration.customRuleConfigurations
         ).union(
             Set(otherCustomRules.configuration.customRuleConfigurations)
         ).filter(customRulesFilter)
         customRules.configuration = configuration
-        return mergedRules.filter { !($0 is CustomRules) } + [customRules]
+
+        rules = rules.filter { !($0 is CustomRules) } + [customRules]
     }
 
     private func mergingRules(with configuration: Configuration) -> [Rule] {
@@ -134,7 +136,58 @@ extension Configuration {
                 )
                 .map { $0.rule }
         }
-        return mergeCustomRules(mergedRules: regularMergedRules, configuration: configuration)
+        return regularMergedRules
+    }
+
+    func mergedRulesWrapper(with configuration: Configuration) -> RulesWrapper {
+        guard rulesWrapper.ruleList == configuration.rulesWrapper.ruleList else {
+            // As the base ruleList differs, we just return the child config
+            return configuration.rulesWrapper
+        }
+
+        let ruleList = rulesWrapper.ruleList
+        let newRulesMode: RulesMode
+        var newConfiguredRules: [Rule]
+
+        // Placeholder values TODO
+        newRulesMode = .allEnabled
+        newConfiguredRules = []
+        // Placeholder values
+
+        switch rulesWrapper.rulesMode {
+        case let .default(disabled, optIn):
+            guard case let .default(subDisabled, subOptIn) = configuration.rulesWrapper.rulesMode else {
+                // As the rule modes differ, we just return the child config
+                return configuration.rulesWrapper
+            }
+
+            print(disabled, subDisabled, optIn, subOptIn)
+
+        case let .whitelisted(whitelisted):
+            guard case let .whitelisted(subWhitelisted) = configuration.rulesWrapper.rulesMode else {
+                // As the rule modes differ, we just return the child config
+                return configuration.rulesWrapper
+            }
+
+            print(whitelisted, subWhitelisted)
+
+        case .allEnabled:
+            guard case .allEnabled = configuration.rulesWrapper.rulesMode else {
+                // As the rule modes differ, we just return the child config
+                return configuration.rulesWrapper
+            }
+        }
+
+        mergeCustomRules(
+            in: &newConfiguredRules, rulesMode: newRulesMode, parent: rulesWrapper, sub: configuration.rulesWrapper
+        )
+        guard let rulesWrapper = RulesWrapper(
+            ruleList: ruleList,
+            configuredRules: newConfiguredRules,
+            rulesMode: newRulesMode
+        ) else { exit(0) } // TODO: Handle properly
+
+        return rulesWrapper
     }
 
     func mergedIncludedAndExcluded(with configuration: Configuration) -> (included: [String], excluded: [String]) {
@@ -154,7 +207,7 @@ extension Configuration {
         let includedAndExcluded = mergedIncludedAndExcluded(with: configuration)
 
         return Configuration(
-            rulesWrapper: rulesWrapper, // TODO: Implement merging for rulesWrapper
+            rulesWrapper: mergedRulesWrapper(with: configuration),
             included: includedAndExcluded.included,
             excluded: includedAndExcluded.excluded,
             // The minimum warning threshold if both exist, otherwise the nested,

@@ -266,7 +266,9 @@ public struct CollectedLinter {
         guard !regions.isEmpty, let superfluousDisableCommandRule = superfluousDisableCommandRule else {
             return []
         }
-        let allCustomIdentifiers = configuration.customRuleIdentifiers.map { RuleIdentifier($0) }
+
+        let allCustomIdentifiers = (configuration.rules.first { $0 is CustomRules } as? CustomRules)?
+            .configuration.customRuleConfigurations.map { RuleIdentifier($0.identifier) } ?? []
         let allRuleIdentifiers = masterRuleList.allValidIdentifiers().map { RuleIdentifier($0) }
         let allValidIdentifiers = Set(allCustomIdentifiers + allRuleIdentifiers + [.all])
 

@@ -11,23 +11,20 @@ public struct Configuration: Hashable {
 
     internal struct RulesWrapper {
         let ruleList: RuleList
-        let configured: [Rule]
+        let configuredRules: [Rule]
         let rulesMode: RulesMode
-        let customRulesIdentifiers: [String]
 
         let rules: [Rule]
 
-        init?(ruleList: RuleList, configured: [Rule], rulesMode: RulesMode, customRulesIdentifiers: [String]) {
+        init?(ruleList: RuleList, configuredRules: [Rule], rulesMode: RulesMode) {
             self.ruleList = ruleList
-            self.configured = configured
+            self.configuredRules = configuredRules
             self.rulesMode = rulesMode
-            self.customRulesIdentifiers = customRulesIdentifiers
 
             guard let rules = enabledRules(
-                from: configured,
+                from: configuredRules,
                 with: rulesMode,
-                aliasResolver: { ruleList.identifier(for: $0) ?? $0 },
-                customRulesIdentifiers: customRulesIdentifiers
+                aliasResolver: { ruleList.identifier(for: $0) ?? $0 }
             ) else {
                 return nil
             }
@@ -37,7 +34,6 @@ public struct Configuration: Hashable {
     }
 
     // MARK: Properties
-
     public static let fileName = ".swiftlint.yml"
 
     public let indentation: IndentationStyle           // style to use when indenting
@@ -65,11 +61,6 @@ public struct Configuration: Hashable {
 
     internal var computedCacheDescription: String?
 
-    internal var customRuleIdentifiers: [String] {
-        let customRule = rules.first(where: { $0 is CustomRules }) as? CustomRules
-        return customRule?.configuration.customRuleConfigurations.map { $0.identifier } ?? []
-    }
-
     // MARK: Rules Properties
 
     // All rules enabled in this configuration, derived from disabled, opt-in and whitelist rules
@@ -91,9 +82,8 @@ public struct Configuration: Hashable {
         configuredRules: [Rule]? = nil,
         swiftlintVersion: String? = nil,
         cachePath: String? = nil,
-        indentation: IndentationStyle = .default,
-        customRulesIdentifiers: [String] = [])
-    {
+        indentation: IndentationStyle = .default
+    ) {
         if let pinnedVersion = swiftlintVersion, pinnedVersion != Version.current.value {
             queuedPrintError("Currently running SwiftLint \(Version.current.value) but " +
                 "configuration specified version \(pinnedVersion).")
@@ -104,13 +94,11 @@ public struct Configuration: Hashable {
             ?? (try? ruleList.configuredRules(with: [:]))
             ?? []
 
-
         guard
             let rulesWrapper = RulesWrapper(
                 ruleList: ruleList,
-                configured: configuredRules,
-                rulesMode: rulesMode,
-                customRulesIdentifiers: customRulesIdentifiers
+                configuredRules: configuredRules,
+                rulesMode: rulesMode
             )
         else { return nil }
 
@@ -161,7 +149,7 @@ public struct Configuration: Hashable {
     public init(path: String = Configuration.fileName, rootPath: String? = nil,
                 optional: Bool = true, quiet: Bool = false,
                 enableAllRules: Bool = false, cachePath: String? = nil,
-                customRulesIdentifiers: [String] = [], subConfigPreviousPaths: [String] = []) {
+                subConfigPreviousPaths: [String] = []) {
         let fullPath: String
         if let rootPath = rootPath, rootPath.isDirectory() {
             fullPath = path.bridge().absolutePathRepresentation(rootDirectory: rootPath)
@@ -182,7 +170,7 @@ public struct Configuration: Hashable {
         let rulesMode: RulesMode = enableAllRules ? .allEnabled : .default(disabled: [], optIn: [])
         if path.isEmpty || !FileManager.default.fileExists(atPath: fullPath) {
             if !optional { fail("File not found.") }
-            self.init(rulesMode: rulesMode, cachePath: cachePath, customRulesIdentifiers: customRulesIdentifiers)!
+            self.init(rulesMode: rulesMode, cachePath: cachePath)!
             self.rootPath = rootPath
             return
         }
@@ -193,7 +181,7 @@ public struct Configuration: Hashable {
                 queuedPrintError("Loading configuration from '\(path)'")
             }
             self.init(dict: dict, enableAllRules: enableAllRules,
-                      cachePath: cachePath, customRulesIdentifiers: customRulesIdentifiers)!
+                      cachePath: cachePath)!
 
             // Merge sub config if needed
             if let subConfigFile = dict[Key.subConfig.rawValue] as? String {
@@ -212,7 +200,7 @@ public struct Configuration: Hashable {
         } catch {
             fail("\(error)")
         }
-        self.init(rulesMode: rulesMode, cachePath: cachePath, customRulesIdentifiers: customRulesIdentifiers)!
+        self.init(rulesMode: rulesMode, cachePath: cachePath)!
         setCached(atPath: fullPath)
     }
 
@@ -253,15 +241,12 @@ public struct Configuration: Hashable {
             }.reduce("") { $0 + " => " + $1 }.dropFirst(4)
             fail("Invalid cycle of sub_config references: \(cycleDescription)")
         } else {
-            let customRuleIdentifiers = (rules.first(where: { $0 is CustomRules }) as? CustomRules)?
-                .configuration.customRuleConfigurations.map { $0.identifier }
             let config = Configuration.getCached(atPath: currentFilePath) ??
                 Configuration(
                     path: subConfigPath,
                     rootPath: rootPath,
                     optional: false,
                     quiet: quiet,
-                    customRulesIdentifiers: customRuleIdentifiers ?? [],
                     subConfigPreviousPaths: subConfigPreviousPaths + [currentFilePath]
                 )
 
@@ -317,12 +302,11 @@ private func containsDuplicateIdentifiers(_ identifiers: [String]) -> Bool {
 
 private func enabledRules(from configuredRules: [Rule],
                           with mode: Configuration.RulesMode,
-                          aliasResolver: (String) -> String,
-                          customRulesIdentifiers: [String]) -> [Rule]? {
+                          aliasResolver: (String) -> String) -> [Rule]? {
     let regularRuleIdentifiers = configuredRules.map { type(of: $0).description.identifier }
     let configurationCustomRulesIdentifiers = (configuredRules.first(where: { $0 is CustomRules }) as? CustomRules)?
         .configuration.customRuleConfigurations.map { $0.identifier } ?? []
-    let validRuleIdentifiers = regularRuleIdentifiers + configurationCustomRulesIdentifiers + customRulesIdentifiers
+    let validRuleIdentifiers = regularRuleIdentifiers + configurationCustomRulesIdentifiers
 
     switch mode {
     case .allEnabled:

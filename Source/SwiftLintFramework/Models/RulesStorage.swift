@@ -1,6 +1,5 @@
 import Foundation
 
-// TODO: Improve alias handling
 public class RulesStorage {
     // MARK: - Subtypes
     public enum Mode {
@@ -45,6 +44,19 @@ public class RulesStorage {
                 self = .default(disabled: Set(disabledRules), optIn: Set(optInRules + analyzerRules))
             }
         }
+
+        func applied(aliasResolver: (String) -> String) -> Mode {
+            switch self {
+            case let .default(disabled, optIn):
+                return .default(disabled: Set(disabled.map(aliasResolver)), optIn: Set(optIn.map(aliasResolver)))
+
+            case let .whitelisted(whitelisted):
+                return .whitelisted(Set(whitelisted.map(aliasResolver)))
+
+            case .allEnabled:
+                return .allEnabled
+            }
+        }
     }
 
     fileprivate struct HashableRule: Hashable {
@@ -77,7 +89,7 @@ public class RulesStorage {
 
         case let .whitelisted(whitelistedRuleIdentifiers):
             let validWhitelistedRuleIdentifiers = validated(
-                ruleIdentifiers: whitelistedRuleIdentifiers.map(aliasResolver)
+                ruleIdentifiers: whitelistedRuleIdentifiers
             )
 
             resultingRules = allRulesWithConfigurations.filter { rule in
@@ -85,8 +97,8 @@ public class RulesStorage {
             }
 
         case let .default(disabledRuleIdentifiers, optInRuleIdentifiers):
-            let validDisabledRuleIdentifiers = validated(ruleIdentifiers: disabledRuleIdentifiers.map(aliasResolver))
-            let validOptInRuleIdentifiers = validated(ruleIdentifiers: optInRuleIdentifiers.map(aliasResolver))
+            let validDisabledRuleIdentifiers = validated(ruleIdentifiers: disabledRuleIdentifiers)
+            let validOptInRuleIdentifiers = validated(ruleIdentifiers: optInRuleIdentifiers)
 
             resultingRules = allRulesWithConfigurations.filter { rule in
                 let id = type(of: rule).description.identifier
@@ -102,16 +114,17 @@ public class RulesStorage {
     public lazy var disabledRuleIdentifiers: [String] = {
         switch mode {
         case let .default(disabled, _):
-            return validated(ruleIdentifiers: disabled.sorted(by: <), silent: true)
+            return validated(ruleIdentifiers: disabled, silent: true).sorted(by: <)
 
         case let .whitelisted(whitelisted):
             return validated(
-                ruleIdentifiers: allRulesWithConfigurations
-                    .map { type(of: $0).description.identifier }
-                    .filter { !whitelisted.contains($0) }
-                    .sorted(by: <),
+                ruleIdentifiers: Set(
+                    allRulesWithConfigurations
+                        .map { type(of: $0).description.identifier }
+                        .filter { !whitelisted.contains($0) }
+                ),
                 silent: true
-            )
+            ).sorted(by: <)
 
         case .allEnabled:
             return []
@@ -120,14 +133,14 @@ public class RulesStorage {
 
     // MARK: - Initializers
     init(mode: Mode, allRulesWithConfigurations: [Rule], aliasResolver: @escaping (String) -> String) {
-        self.mode = mode
+        self.mode = mode.applied(aliasResolver: aliasResolver)
         self.allRulesWithConfigurations = allRulesWithConfigurations
         self.aliasResolver = aliasResolver
     }
 
     // MARK: - Methods
     /// Validate that all rule identifiers map to a defined rule and warn about duplicates
-    private func validated(ruleIdentifiers: [String], silent: Bool = false) -> [String] {
+    private func validated(ruleIdentifiers: Set<String>, silent: Bool = false) -> [String] {
         // Fetch valid rule identifiers
         let regularRuleIdentifiers = allRulesWithConfigurations.map { type(of: $0).description.identifier }
         let configurationCustomRulesIdentifiers =

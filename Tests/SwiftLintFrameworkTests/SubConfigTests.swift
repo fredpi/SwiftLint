@@ -2,24 +2,7 @@ import Foundation
 @testable import SwiftLintFramework
 import XCTest
 
-class SubConfigTests: XCTestCase {
-    // MARK: - Properties
-    var projectMockPathSubConfigValid1: String {
-        return ConfigurationTests().projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Valid1")
-    }
-
-    var projectMockPathSubConfigValid2: String {
-        return ConfigurationTests().projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Valid2")
-    }
-
-    var projectMockPathSubConfigFail1: String {
-        return ConfigurationTests().projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Fail1")
-    }
-
-    var projectMockPathSubConfigFail2: String {
-        return ConfigurationTests().projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Fail2")
-    }
-
+class SubConfigTests: XCTestCase, ProjectMock {
     // MARK: - Methods
     func testValidSubConfig() {
         let previousWorkingDir = FileManager.default.currentDirectoryPath

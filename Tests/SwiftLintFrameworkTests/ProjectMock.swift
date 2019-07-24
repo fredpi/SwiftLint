@@ -1,6 +1,10 @@
 @testable import SwiftLintFramework
 
-extension ConfigurationTests {
+protocol ProjectMock {
+    var testResourcesPath: String { get }
+}
+
+extension ProjectMock {
     var projectMockPathLevel0: String {
         return testResourcesPath.stringByAppendingPathComponent("ProjectMock")
     }
@@ -15,6 +19,22 @@ extension ConfigurationTests {
 
     var projectMockPathLevel3: String {
         return projectMockPathLevel2.stringByAppendingPathComponent("Level3")
+    }
+
+    var projectMockPathSubConfigValid1: String {
+        return projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Valid1")
+    }
+
+    var projectMockPathSubConfigValid2: String {
+        return projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Valid2")
+    }
+
+    var projectMockPathSubConfigFail1: String {
+        return projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Fail1")
+    }
+
+    var projectMockPathSubConfigFail2: String {
+        return projectMockPathLevel0.stringByAppendingPathComponent("SubConfig/Fail2")
     }
 
     var projectMockYAML0: String {

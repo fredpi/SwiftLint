@@ -5,7 +5,7 @@ import XCTest
 
 private let optInRules = masterRuleList.list.filter({ $0.1.init() is OptInRule }).map({ $0.0 })
 
-class ConfigurationTests: XCTestCase {
+class ConfigurationTests: XCTestCase, ProjectMock {
     func testInit() {
         XCTAssert(Configuration(dict: [:]) != nil,
                   "initializing Configuration with empty Dictionary should succeed")
@@ -198,10 +198,14 @@ class ConfigurationTests: XCTestCase {
             "Level0.swift",
             "Level1.swift",
             "Level2.swift",
-            "Level3.swift"
+            "Level3.swift",
+            "Fail1.swift",
+            "Fail2.swift",
+            "Valid1.swift",
+            "Valid2.swift"
         ]
 
-        XCTAssertEqual(expectedFilenames, filenames)
+        XCTAssertEqual(Set(expectedFilenames), Set(filenames))
     }
 
     func testGlobExcludePaths() {

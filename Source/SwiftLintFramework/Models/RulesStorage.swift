@@ -125,44 +125,46 @@ public class RulesStorage {
 
     // MARK: Merging
     func merged(with sub: RulesStorage) -> RulesStorage {
-        // Merge mode
-        let newMode: Mode
-        switch mode {
-        case let .default(disabled, optIn):
-            guard case let .default(subDisabled, subOptIn) = sub.mode else {
-                // As the rule modes differ, we just return the child config
-                return sub
-            }
-
-            // Only use parent disabled / optIn if sub config doesn't tell the opposite
-            newMode = .default(
-                disabled: Array(Set(subDisabled).union(Set(disabled.filter { !subOptIn.contains($0) }))),
-                optIn: Array(Set(subOptIn).union(Set(optIn.filter { !subDisabled.contains($0) })))
-            )
-
-        case .whitelisted:
-            guard case let .whitelisted(subWhitelisted) = sub.mode else {
-                // As the rule modes differ, we just return the child config
-                return sub
-            }
-
-            // Always use the sub whitelist
-            newMode = .whitelisted(subWhitelisted)
-
-        case .allEnabled:
-            guard case .allEnabled = sub.mode else {
-                // As the rule modes differ, we just return the child config
-                return sub
-            }
-
-            // Stay in .allEnabled mode
-            newMode = .allEnabled
-        }
-
         // Merge allRulesWithConfigurations
         let newAllRulesWithConfigurations = Set(sub.allRulesWithConfigurations.map(HashableRule.init))
             .union(allRulesWithConfigurations.map(HashableRule.init))
             .map { $0.rule }
+
+        // Merge mode
+        let newMode: Mode
+        switch sub.mode {
+        case let .default(subDisabled, subOptIn):
+            switch mode {
+            case let .default(disabled, optIn):
+                // Only use parent disabled / optIn if sub config doesn't tell the opposite
+                newMode = .default(
+                    disabled: Array(Set(subDisabled).union(Set(disabled.filter { !subOptIn.contains($0) }))),
+                    optIn: Array(Set(subOptIn).union(Set(optIn.filter { !subDisabled.contains($0) })))
+                )
+
+            case let .whitelisted(whitelisted):
+                // Allow parent whitelist rules that weren't disabled via the sub config & opt-ins from the sub config
+                newMode = .whitelisted(Array(Set(
+                    subOptIn + whitelisted.filter { !subDisabled.contains($0) }
+                )))
+
+            case .allEnabled:
+                // Opt-in to every rule that isn't disabled via sub config
+                newMode = .default(
+                    disabled: subDisabled,
+                    optIn: newAllRulesWithConfigurations.map { type(of: $0).description.identifier }
+                        .filter { $0 is OptInRule && !subDisabled.contains($0) }
+                )
+            }
+
+        case let .whitelisted(subWhitelisted):
+            // Always use the sub whitelist
+            newMode = .whitelisted(subWhitelisted)
+
+        case .allEnabled:
+            // Always use .allEnabled mode
+            newMode = .allEnabled
+        }
 
         // Assemble & return merged RulesStorage
         return RulesStorage(

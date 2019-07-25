@@ -18,11 +18,9 @@ public class RulesStorage {
                 if Set(identifiers).count != identifiers.count {
                     let duplicateRules = identifiers.reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
                         .filter { $0.1 > 1 }
-                    queuedPrintError(
-                        duplicateRules
-                            .map { rule in "warning: '\(rule.0)' is listed \(rule.1) times" }
-                            .joined(separator: "\n")
-                    )
+                    for duplicateRule in duplicateRules {
+                        queuedPrintError("warning: '\(duplicateRule.0)' is listed \(duplicateRule.1) times")
+                    }
                 }
             }
 

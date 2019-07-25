@@ -59,12 +59,11 @@ public class RulesStorage {
         }
     }
 
-    fileprivate struct HashableRule: Hashable {
+    fileprivate struct HashableRuleWrapper: Hashable {
         fileprivate let rule: Rule
 
-        fileprivate static func == (lhs: HashableRule, rhs: HashableRule) -> Bool {
-            // Don't use `isEqualTo` in case its internal implementation changes from
-            // using the identifier to something else, which could mess up with the `Set`
+        fileprivate static func == (lhs: HashableRuleWrapper, rhs: HashableRuleWrapper) -> Bool {
+            // Only use identifier for equality check (not taking config into account)
             return type(of: lhs.rule).description.identifier == type(of: rhs.rule).description.identifier
         }
 
@@ -167,8 +166,8 @@ public class RulesStorage {
     // MARK: Merging
     internal func merged(with sub: RulesStorage) -> RulesStorage {
         // Merge allRulesWithConfigurations
-        let newAllRulesWithConfigurations = Set(sub.allRulesWithConfigurations.map(HashableRule.init))
-            .union(allRulesWithConfigurations.map(HashableRule.init))
+        let newAllRulesWithConfigurations = Set(sub.allRulesWithConfigurations.map(HashableRuleWrapper.init))
+            .union(allRulesWithConfigurations.map(HashableRuleWrapper.init))
             .map { $0.rule }
 
         // Merge mode
@@ -180,9 +179,11 @@ public class RulesStorage {
                 // Only use parent disabled / optIn if sub config doesn't tell the opposite
                 newMode = .default(
                     disabled: Set(subDisabled).union(Set(disabled.filter { !subOptIn.contains($0) }))
-                        .filter { isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) == false },
+                        // (. != true) means (. == false) || (. == nil)
+                        .filter { isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) != true },
                     optIn: Set(subOptIn).union(Set(optIn.filter { !subDisabled.contains($0) }))
-                        .filter { isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) == true }
+                        // (. != false) means (. == true) || (. == nil)
+                        .filter { isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) != false }
                 )
 
             case let .whitelisted(whitelisted):

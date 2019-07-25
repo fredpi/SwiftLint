@@ -199,8 +199,6 @@ class ConfigurationTests: XCTestCase, ProjectMock {
             "Level1.swift",
             "Level2.swift",
             "Level3.swift",
-            "Fail1.swift",
-            "Fail2.swift",
             "Valid1.swift",
             "Valid2.swift"
         ]

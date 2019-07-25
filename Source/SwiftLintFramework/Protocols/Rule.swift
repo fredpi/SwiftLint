@@ -49,13 +49,7 @@ public protocol OptInRule: Rule {}
 public protocol AutomaticTestableRule: Rule {}
 
 public protocol InitializedWithNonEmptyConfigurationSettableRule: Rule {
-    var _initializedWithNonEmptyConfiguration: Bool { get set }
-}
-
-extension InitializedWithNonEmptyConfigurationSettableRule {
-    var initializedWithNonEmptyConfiguration: Bool {
-        return _initializedWithNonEmptyConfiguration
-    }
+    var initializedWithNonEmptyConfiguration: Bool { get set }
 }
 
 public protocol ConfigurationProviderRule: InitializedWithNonEmptyConfigurationSettableRule {

@@ -2,6 +2,7 @@ import SourceKittenFramework
 
 public struct DiscouragedObjectLiteralRule: ASTRule, OptInRule, ConfigurationProviderRule {
     public var configuration = ObjectLiteralConfiguration()
+    public var initializedWithNonEmptyConfiguration: Bool = false
 
     public init() {}
 

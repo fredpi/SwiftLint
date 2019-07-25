@@ -35,6 +35,7 @@ public struct PrivateUnitTestRule: ASTRule, ConfigurationProviderRule, CacheDesc
         configuration.regex = regex("XCTestCase")
         return configuration
     }()
+    public var initializedWithNonEmptyConfiguration: Bool = false
 
     internal var cacheDescription: String {
         return configuration.cacheDescription

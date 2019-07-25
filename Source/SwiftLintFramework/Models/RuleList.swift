@@ -39,7 +39,7 @@ public struct RuleList {
                     (configuration as? [String: Any])?.isEmpty == false,
                     var settableRule = configuredRule as? InitializedWithNonEmptyConfigurationSettableRule
                 {
-                    settableRule._initializedWithNonEmptyConfiguration = true
+                    settableRule.initializedWithNonEmptyConfiguration = true
                     rules[identifier] = settableRule
                 } else {
                     rules[identifier] = configuredRule

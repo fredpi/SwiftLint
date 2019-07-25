@@ -1252,8 +1252,7 @@ extension StrongIBOutletRuleTests {
 
 extension SubConfigTests {
     static var allTests: [(String, (SubConfigTests) -> () throws -> Void)] = [
-        ("testValidSubConfig", testValidSubConfig),
-        ("testInvalidSubConfig", testInvalidSubConfig)
+        ("testValidSubConfig", testValidSubConfig)
     ]
 }
 

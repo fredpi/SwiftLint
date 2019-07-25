@@ -35,7 +35,15 @@ public struct RuleList {
             guard rules[identifier] == nil else { throw RuleListError.duplicatedConfigurations(rule: ruleType) }
             do {
                 let configuredRule = try ruleType.init(configuration: configuration)
-                rules[identifier] = configuredRule
+                if
+                    (configuration as? [String: Any])?.isEmpty == false,
+                    var settableRule = configuredRule as? InitializedWithNonEmptyConfigurationSettableRule
+                {
+                    settableRule._initializedWithNonEmptyConfiguration = true
+                    rules[identifier] = settableRule
+                } else {
+                    rules[identifier] = configuredRule
+                }
             } catch {
                 queuedPrintError("Invalid configuration for '\(identifier)'. Falling back to default.")
                 rules[identifier] = ruleType.init()

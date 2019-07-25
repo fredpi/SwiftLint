@@ -168,14 +168,10 @@ public class RulesStorage {
         // Merge allRulesWithConfigurations
         let mainConfigHashableRuleSet = allRulesWithConfigurations.map(HashableRuleWrapper.init)
         let relevantSubConfigRules = sub.allRulesWithConfigurations.filter {
-            if !mainConfigHashableRuleSet.contains(HashableRuleWrapper(rule: $0)) {
-                return true // Rule is unique to sub config => include
-            }
-
-            // Include, if rule was configured in sub config
-            // This way, if the sub config doesn't configure a rule, the parent rule config will be used
-            let defaultConfigDescription = type(of: $0).init().configurationDescription
-            return defaultConfigDescription != $0.configurationDescription
+            !mainConfigHashableRuleSet.contains(HashableRuleWrapper(rule: $0))
+                // Include, if rule was configured in sub config
+                // This way, if the sub config doesn't configure a rule, the parent rule config will be used
+                || $0.initializedWithNonEmptyConfiguration
         }
 
         let newAllRulesWithConfigurations = Set(relevantSubConfigRules.map(HashableRuleWrapper.init))

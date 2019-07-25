@@ -36,7 +36,8 @@ public struct RuleList {
             do {
                 let configuredRule = try ruleType.init(configuration: configuration)
                 if
-                    (configuration as? [String: Any])?.isEmpty == false,
+                    (configuration as? [String: Any])?.isEmpty == false
+                        || ([Any].array(of: configuration))?.isEmpty == false,
                     var settableRule = configuredRule as? InitializedWithNonEmptyConfigurationSettableRule
                 {
                     settableRule.initializedWithNonEmptyConfiguration = true

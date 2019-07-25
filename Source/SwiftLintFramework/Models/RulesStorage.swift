@@ -166,16 +166,14 @@ public class RulesStorage {
     // MARK: Merging
     internal func merged(with sub: RulesStorage) -> RulesStorage {
         // Merge allRulesWithConfigurations
-        let mainConfigHashableRuleSet = allRulesWithConfigurations.map(HashableRuleWrapper.init)
-        let relevantSubConfigRules = sub.allRulesWithConfigurations.filter {
-            !mainConfigHashableRuleSet.contains(HashableRuleWrapper(rule: $0))
-                // Include, if rule was configured in sub config
-                // This way, if the sub config doesn't configure a rule, the parent rule config will be used
-                || $0.initializedWithNonEmptyConfiguration
-        }
-
-        let newAllRulesWithConfigurations = Set(relevantSubConfigRules.map(HashableRuleWrapper.init))
-            .union(mainConfigHashableRuleSet).map { $0.rule }
+        let mainConfigSet = Set(allRulesWithConfigurations.map(HashableRuleWrapper.init))
+        let subConfigSet = Set(sub.allRulesWithConfigurations.map(HashableRuleWrapper.init))
+        let subConfigRulesWithConfig = subConfigSet.filter { $0.rule.initializedWithNonEmptyConfiguration }
+        let rulesUniqueToSubConfig = subConfigSet.subtracting(mainConfigSet)
+        let newAllRulesWithConfigurations = subConfigRulesWithConfig // Include, if rule is configured in sub
+            .union(rulesUniqueToSubConfig) // Include, if rule is in sub config only
+            .union(mainConfigSet) // Use configurations from parent for remaining rules
+            .map { $0.rule }
 
         // Merge mode
         let newMode: Mode
@@ -263,7 +261,15 @@ public class RulesStorage {
     }
 
     // MARK: Helpers
+    static var isOptInRuleCache: [String: Bool] = [:]
     private func isOptInRule(_ identifier: String, allRulesWithConfigurations: [Rule]) -> Bool? {
-        return allRulesWithConfigurations.first { type(of: $0).description.identifier == identifier } is OptInRule
+        if let cachedIsOptInRule = RulesStorage.isOptInRuleCache[identifier] {
+            return cachedIsOptInRule
+        }
+
+        let isOptInRule = allRulesWithConfigurations
+            .first { type(of: $0).description.identifier == identifier } is OptInRule
+        RulesStorage.isOptInRuleCache[identifier] = isOptInRule
+        return isOptInRule
     }
 }

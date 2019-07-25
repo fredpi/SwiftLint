@@ -45,16 +45,16 @@ public class RulesStorage {
             }
         }
 
-        func applied(aliasResolver: (String) -> String, validRuleIdentifiers: ([String]) -> [String]) -> Mode {
+        func applied(aliasResolver: (String) -> String) -> Mode {
             switch self {
             case let .default(disabled, optIn):
                 return .default(
-                    disabled: Set(validRuleIdentifiers(disabled.map(aliasResolver))),
-                    optIn: Set(validRuleIdentifiers(optIn.map(aliasResolver)))
+                    disabled: Set(disabled.map(aliasResolver)),
+                    optIn: Set(optIn.map(aliasResolver))
                 )
 
             case let .whitelisted(whitelisted):
-                return .whitelisted(Set(validRuleIdentifiers(whitelisted.map(aliasResolver))))
+                return .whitelisted(Set(whitelisted.map(aliasResolver)))
 
             case .allEnabled:
                 return .allEnabled
@@ -76,9 +76,20 @@ public class RulesStorage {
     }
 
     // MARK: - Properties
+    private static var isOptInRuleCache: [String: Bool] = [:]
+
     public let allRulesWithConfigurations: [Rule]
     private let mode: Mode
     private let aliasResolver: (String) -> String
+
+    private var invalidRuleIdsWarnedAbout: Set<String> = []
+    private var validRuleIdentifiers: Set<String> {
+        let regularRuleIdentifiers = allRulesWithConfigurations.map { type(of: $0).description.identifier }
+        let configurationCustomRulesIdentifiers =
+            (allRulesWithConfigurations.first { $0 is CustomRules } as? CustomRules)?
+                .configuration.customRuleConfigurations.map { $0.identifier } ?? []
+        return Set(regularRuleIdentifiers + configurationCustomRulesIdentifiers)
+    }
 
     /// All rules enabled in this configuration, derived from rule mode (whitelist / optIn - disabled) & existing rules
     public lazy var resultingRules: [Rule] = {
@@ -89,16 +100,19 @@ public class RulesStorage {
         case .allEnabled:
             resultingRules = allRulesWithConfigurations
 
-        case let .whitelisted(whitelistedRuleIdentifiers):
+        case var .whitelisted(whitelistedRuleIdentifiers):
+            whitelistedRuleIdentifiers = validate(ruleIds: whitelistedRuleIdentifiers, valid: validRuleIdentifiers)
             resultingRules = allRulesWithConfigurations.filter { rule in
                 whitelistedRuleIdentifiers.contains(type(of: rule).description.identifier)
             }
 
-        case let .default(disabledRuleIdentifiers, optInRuleIdentifiers):
+        case var .default(disabledRuleIdentifiers, optInRuleIdentifiers):
+            disabledRuleIdentifiers = validate(ruleIds: disabledRuleIdentifiers, valid: validRuleIdentifiers)
+            optInRuleIdentifiers = validate(ruleIds: optInRuleIdentifiers, valid: validRuleIdentifiers)
             resultingRules = allRulesWithConfigurations.filter { rule in
                 let id = type(of: rule).description.identifier
-                if disabledRuleIdentifiers.contains(id) { return false }
-                return optInRuleIdentifiers.contains(id) || !(rule is OptInRule)
+                return !disabledRuleIdentifiers.contains(id)
+                    && (!(rule is OptInRule) || optInRuleIdentifiers.contains(id))
             }
         }
 
@@ -109,13 +123,17 @@ public class RulesStorage {
     public lazy var disabledRuleIdentifiers: [String] = {
         switch mode {
         case let .default(disabled, _):
-            return disabled.sorted(by: <)
+            return validate(ruleIds: disabled, valid: validRuleIdentifiers, silent: true)
+                .sorted(by: <)
 
         case let .whitelisted(whitelisted):
-            return allRulesWithConfigurations
-                .map { type(of: $0).description.identifier }
-                .filter { !whitelisted.contains($0) }
-                .sorted(by: <)
+            return validate(
+                ruleIds: Set(allRulesWithConfigurations
+                    .map { type(of: $0).description.identifier }
+                    .filter { !whitelisted.contains($0) }),
+                valid: validRuleIdentifiers,
+                silent: true
+            ).sorted(by: <)
 
         case .allEnabled:
             return []
@@ -126,54 +144,50 @@ public class RulesStorage {
     init(mode: Mode, allRulesWithConfigurations: [Rule], aliasResolver: @escaping (String) -> String) {
         self.allRulesWithConfigurations = allRulesWithConfigurations
         self.aliasResolver = aliasResolver
-        self.mode = mode.applied(
-            aliasResolver: aliasResolver,
-            validRuleIdentifiers: { ruleIdentifiers in
-                // Fetch valid rule identifiers
-                let regularRuleIdentifiers = allRulesWithConfigurations.map { type(of: $0).description.identifier }
-                let configurationCustomRulesIdentifiers =
-                    (allRulesWithConfigurations.first { $0 is CustomRules } as? CustomRules)?
-                        .configuration.customRuleConfigurations.map { $0.identifier } ?? []
-                let validRuleIdentifiers = regularRuleIdentifiers + configurationCustomRulesIdentifiers
+        self.mode = mode.applied(aliasResolver: aliasResolver)
+    }
 
-                // Process invalid rule identifiers
-                let invalidRuleIdentifiers = ruleIdentifiers.filter { !validRuleIdentifiers.contains($0) }
-                if !invalidRuleIdentifiers.isEmpty {
-                    for invalidRuleIdentifier in invalidRuleIdentifiers {
-                        queuedPrintError(
-                            "warning: '\(invalidRuleIdentifier)' is not a valid rule identifier"
-                        )
-                    }
-
+    // MARK: - Methods: Validation
+    private func validate(ruleIds: Set<String>, valid: Set<String>, silent: Bool = false) -> Set<String> {
+        // Process invalid rule identifiers
+        if !silent {
+            let invalidRuleIdentifiers = ruleIds.subtracting(valid)
+            if !invalidRuleIdentifiers.isEmpty {
+                for invalidRuleIdentifier in invalidRuleIdentifiers.subtracting(invalidRuleIdsWarnedAbout) {
+                    invalidRuleIdsWarnedAbout.insert(invalidRuleIdentifier)
                     queuedPrintError(
-                        "Valid rule identifiers:\n\(validRuleIdentifiers.sorted().joined(separator: "\n"))"
+                        "warning: '\(invalidRuleIdentifier)' is not a valid rule identifier"
                     )
                 }
 
-                // Return valid rule identifiers
-                return ruleIdentifiers.filter(validRuleIdentifiers.contains)
+                queuedPrintError(
+                    "Valid rule identifiers:\n\(valid.sorted().joined(separator: "\n"))"
+                )
             }
-        )
+        }
+
+        // Return valid rule identifiers
+        return ruleIds.intersection(valid)
     }
 
-    // MARK: - Methods: Merging
+    // MARK: Merging
     internal func merged(with sub: RulesStorage) -> RulesStorage {
         // Merge allRulesWithConfigurations
-        let mainConfigSet = Set(allRulesWithConfigurations.map(HashableRuleWrapper.init))
-        let subConfigSet = Set(sub.allRulesWithConfigurations.map(HashableRuleWrapper.init))
-        let subConfigRulesWithConfig = subConfigSet.filter { $0.rule.initializedWithNonEmptyConfiguration }
-        let rulesUniqueToSubConfig = subConfigSet.subtracting(mainConfigSet)
-        let newAllRulesWithConfigurations = subConfigRulesWithConfig // Include, if rule is configured in sub
-            .union(rulesUniqueToSubConfig) // Include, if rule is in sub config only
-            .union(mainConfigSet) // Use configurations from parent for remaining rules
-            .map { $0.rule }
+        let newAllRulesWithConfigurations = mergedAllRulesWithConfigurations(with: sub)
 
         // Merge mode
+        let validRuleIdentifiers = self.validRuleIdentifiers.union(sub.validRuleIdentifiers)
         let newMode: Mode
         switch sub.mode {
-        case let .default(subDisabled, subOptIn):
+        case var .default(subDisabled, subOptIn):
+            subDisabled = sub.validate(ruleIds: subDisabled, valid: validRuleIdentifiers)
+            subOptIn = sub.validate(ruleIds: subOptIn, valid: validRuleIdentifiers)
+
             switch mode {
-            case let .default(disabled, optIn):
+            case var .default(disabled, optIn):
+                disabled = validate(ruleIds: disabled, valid: validRuleIdentifiers)
+                optIn = sub.validate(ruleIds: optIn, valid: validRuleIdentifiers)
+
                 // Only use parent disabled / optIn if sub config doesn't tell the opposite
                 newMode = .default(
                     disabled: Set(subDisabled).union(Set(disabled.filter { !subOptIn.contains($0) }))
@@ -184,7 +198,9 @@ public class RulesStorage {
                         .filter { isOptInRule($0, allRulesWithConfigurations: newAllRulesWithConfigurations) != false }
                 )
 
-            case let .whitelisted(whitelisted):
+            case var .whitelisted(whitelisted):
+                whitelisted = validate(ruleIds: whitelisted, valid: validRuleIdentifiers)
+
                 // Allow parent whitelist rules that weren't disabled via the sub config & opt-ins from the sub config
                 newMode = .whitelisted(Set(
                     subOptIn + whitelisted.filter { !subDisabled.contains($0) }
@@ -204,7 +220,9 @@ public class RulesStorage {
                 )
             }
 
-        case let .whitelisted(subWhitelisted):
+        case var .whitelisted(subWhitelisted):
+            subWhitelisted = sub.validate(ruleIds: subWhitelisted, valid: validRuleIdentifiers)
+
             // Always use the sub whitelist
             newMode = .whitelisted(subWhitelisted)
 
@@ -219,6 +237,17 @@ public class RulesStorage {
             allRulesWithConfigurations: merged(customRules: newAllRulesWithConfigurations, mode: newMode, with: sub),
             aliasResolver: { sub.aliasResolver(self.aliasResolver($0)) }
         )
+    }
+
+    private func mergedAllRulesWithConfigurations(with sub: RulesStorage) -> [Rule] {
+        let mainConfigSet = Set(allRulesWithConfigurations.map(HashableRuleWrapper.init))
+        let subConfigSet = Set(sub.allRulesWithConfigurations.map(HashableRuleWrapper.init))
+        let subConfigRulesWithConfig = subConfigSet.filter { $0.rule.initializedWithNonEmptyConfiguration }
+        let rulesUniqueToSubConfig = subConfigSet.subtracting(mainConfigSet)
+        return subConfigRulesWithConfig // Include, if rule is configured in sub
+            .union(rulesUniqueToSubConfig) // Include, if rule is in sub config only
+            .union(mainConfigSet) // Use configurations from parent for remaining rules
+            .map { $0.rule }
     }
 
     private func merged(customRules rules: [Rule], mode: Mode, with sub: RulesStorage) -> [Rule] {
@@ -254,8 +283,6 @@ public class RulesStorage {
     }
 
     // MARK: Helpers
-    static var isOptInRuleCache: [String: Bool] = [:]
-
     private func isOptInRule(_ identifier: String, allRulesWithConfigurations: [Rule]) -> Bool? {
         if let cachedIsOptInRule = RulesStorage.isOptInRuleCache[identifier] {
             return cachedIsOptInRule

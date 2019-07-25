@@ -262,3 +262,19 @@ private extension String {
         return false
     }
 }
+
+extension Configuration: CustomStringConvertible {
+    public var description: String {
+        return "Configuration: \n"
+            + "- Indentation Style: \(indentation)\n"
+            + "- Included: \(included)\n"
+            + "- Excluded: \(excluded)\n"
+            + "- Warning Treshold: \(warningThreshold as Optional)\n"
+            + "- Root Path: \(rootPath as Optional)\n"
+            + "- Configuration Path: \(configurationPath as Optional)\n"
+            + "- Reporter: \(reporter)\n"
+            + "- Cache Path: \(cachePath as Optional)\n"
+            + "- Computed Cache Description: \(computedCacheDescription as Optional)\n"
+            + "- Rules: \(rules.map { type(of: $0).description.identifier })"
+    }
+}

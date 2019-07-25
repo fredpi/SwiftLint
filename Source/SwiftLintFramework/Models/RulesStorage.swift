@@ -262,6 +262,7 @@ public class RulesStorage {
 
     // MARK: Helpers
     static var isOptInRuleCache: [String: Bool] = [:]
+
     private func isOptInRule(_ identifier: String, allRulesWithConfigurations: [Rule]) -> Bool? {
         if let cachedIsOptInRule = RulesStorage.isOptInRuleCache[identifier] {
             return cachedIsOptInRule

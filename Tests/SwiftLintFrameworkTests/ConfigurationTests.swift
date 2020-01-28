@@ -227,7 +227,9 @@ class ConfigurationTests: XCTestCase, ProjectMock {
             "Level2.swift",
             "Level3.swift",
             "Valid1.swift",
-            "Valid2.swift"
+            "Valid2.swift",
+            "Main.swift",
+            "Sub.swift"
         ]
 
         XCTAssertEqual(Set(expectedFilenames), Set(filenames))

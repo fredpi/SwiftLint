@@ -269,10 +269,10 @@ private func testCorrection(_ correction: (Example, Example),
     var config = configuration
     if let correctionConfiguration = correction.0.configuration,
         case let .only(onlyRules) = configuration.rulesMode,
-        let firstRule = onlyRules.first,
-        case let configDict = ["only_rules": onlyRules, firstRule: correctionConfiguration],
-        let typedConfiguration = Configuration(dict: configDict) {
-        config = configuration.merge(with: typedConfiguration)
+        let ruleToConfigure = (onlyRules.first { $0 != SuperfluousDisableCommandRule.description.identifier }),
+        case let configDict = ["only_roles": onlyRules, ruleToConfigure: correctionConfiguration],
+        let typedConfiguration = try? Configuration(dict: configDict) {
+        config = configuration.merged(withChild: typedConfiguration)
     }
 
     config.assertCorrection(correction.0, expected: correction.1)

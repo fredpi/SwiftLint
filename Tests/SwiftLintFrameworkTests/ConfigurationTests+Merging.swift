@@ -52,12 +52,12 @@ extension ConfigurationTests {
         XCTAssertEqual(onlyConfiguration.rules.count, 1)
         XCTAssertTrue(onlyConfiguration.rules[0] is TodoRule)
 
-        let mergedConfiguration1 = baseConfiguration.merged(with: onlyConfiguration)
+        let mergedConfiguration1 = baseConfiguration.merged(withChild: onlyConfiguration)
         XCTAssertEqual(mergedConfiguration1.rules.count, 1)
         XCTAssertTrue(mergedConfiguration1.rules[0] is TodoRule)
 
         // Also test the other way around
-        let mergedConfiguration2 = onlyConfiguration.merged(with: baseConfiguration)
+        let mergedConfiguration2 = onlyConfiguration.merged(withChild: baseConfiguration)
         XCTAssertEqual(mergedConfiguration2.rules.count, 3) // 2 opt-ins + 1 from the only rules
         XCTAssertTrue(mergedConfiguration2.contains(rule: TodoRule.self))
         XCTAssertTrue(mergedConfiguration2.contains(rule: ForceCastRule.self))

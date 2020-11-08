@@ -17,7 +17,7 @@ extension Configuration {
         case whitelistRules = "whitelist_rules" // deprecated in favor of onlyRules
         case indentation = "indentation"
         case analyzerRules = "analyzer_rules"
-        case allowZeroLintableFiles  = "allow_zero_lintable_files"
+        case allowZeroLintableFiles = "allow_zero_lintable_files"
         case childConfig = "child_config"
         case parentConfig = "parent_config"
         case remoteConfigTimeout = "remote_timeout"

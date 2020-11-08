@@ -260,7 +260,7 @@ class LinterCacheTests: XCTestCase {
         validateNewConfigDoesntHitCache(dict: ["enabled_rules": []], initialConfig: initialConfig)
     }
 
-    func testWhitelistRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted() {
+    func testOnlyRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted() {
         // swiftlint:disable:next force_try
         let initialConfig = try! Configuration(dict: ["only_rules": ["nesting"]])
         cacheAndValidateNoViolationsTwoFiles(configuration: initialConfig)

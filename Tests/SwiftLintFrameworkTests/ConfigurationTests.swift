@@ -3,6 +3,8 @@ import SourceKittenFramework
 @testable import SwiftLintFramework
 import XCTest
 
+// swiftlint:disable type_body_length
+
 private let optInRules = primaryRuleList.list.filter({ $0.1.init() is OptInRule }).map({ $0.0 })
 
 class ConfigurationTests: XCTestCase, ProjectMock {
@@ -330,7 +332,7 @@ extension ConfigurationTests {
         FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
         let configuration = Configuration(includedPaths: ["Level1"],
                                           excludedPaths: ["Level1/Level1.swift",
-                                                     "Level1/Level2/Level3"])
+                                                          "Level1/Level2/Level3"])
         let paths = configuration.lintablePaths(inPath: projectMockPathLevel0,
                                                 forceExclude: false,
                                                 excludeByPrefix: true)

@@ -234,12 +234,13 @@ extension Configuration {
         let cachePath = options.cachePath.isEmpty ? nil : options.cachePath
         self.init(
             configurationFiles: options.configurationFiles,
-            rootPath: FileManager.default.currentDirectoryPath.bridge().absolutePathStandardized(), // TODO: Self.rootPath(from: options.paths),
+            rootPath: FileManager.default.currentDirectoryPath.bridge().absolutePathStandardized(),
             optional: isConfigOptional(),
             quiet: options.quiet,
             enableAllRules: options.enableAllRules,
             cachePath: cachePath
         )
+        #warning("TODO: Self.rootPath(from: options.paths),")
     }
 
     func visitLintableFiles(options: LintOrAnalyzeOptions, cache: LinterCache? = nil, storage: RuleStorage,

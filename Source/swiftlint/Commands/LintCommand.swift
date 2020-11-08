@@ -35,8 +35,7 @@ struct LintOptions: OptionsProtocol {
                 allPaths = paths
             }
 
-            return self.init(paths: allPaths, useSTDIN: useSTDIN, configurationFiles: configurationFiles, strict: strict, lenient: lenient, forceExclude: forceExclude, excludeByPrefix: excludeByPrefix,
-            useScriptInputFiles: useScriptInputFiles, benchmark: benchmark, reporter: reporter, quiet: quiet, cachePath: cachePath, ignoreCache: ignoreCache, enableAllRules: enableAllRules)
+            return self.init(paths: allPaths, useSTDIN: useSTDIN, configurationFiles: configurationFiles, strict: strict, lenient: lenient, forceExclude: forceExclude, excludeByPrefix: excludeByPrefix, useScriptInputFiles: useScriptInputFiles, benchmark: benchmark, reporter: reporter, quiet: quiet, cachePath: cachePath, ignoreCache: ignoreCache, enableAllRules: enableAllRules)
             // swiftlint:enable line_length
         }}}}}}}}}}}}}}
     }

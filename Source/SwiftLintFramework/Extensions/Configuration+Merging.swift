@@ -25,8 +25,12 @@ extension Configuration {
     private func mergedIncludedAndExcluded(
         with childConfiguration: Configuration
     ) -> (included: [String], excluded: [String]) {
-        let parentRootPathComps = rootDirectory?.components(separatedBy: "/") ?? []
-        var childRootPathComps = childConfiguration.rootDirectory?.components(separatedBy: "/") ?? []
+        let parentRootPathComps = configurationPath?.components(separatedBy: "/").dropLast()
+            ?? rootDirectory?.components(separatedBy: "/")
+            ?? []
+        var childRootPathComps = childConfiguration.configurationPath?.components(separatedBy: "/").dropLast()
+            ?? childConfiguration.rootDirectory?.components(separatedBy: "/")
+            ?? []
 
         let parentConfigIncluded: [String]
         let parentConfigExcluded: [String]
@@ -92,22 +96,15 @@ extension Configuration {
         return (file.path?.bridge().deletingLastPathComponent).map(configuration(forDirectory:)) ?? self
     }
 
-    #warning("TODO")
-//    private func configuration(forPath path: String) -> Configuration {
-//        let rootConfigurationDirectory = configurationPath?.bridge().deletingLastPathComponent
-//        // We're linting a file in the same directory as the root configuration we've already loaded
-//        if path == rootConfigurationDirectory {
-//            return self
-//        }
-
     private func configuration(forDirectory directory: String) -> Configuration {
         // Allow nested configuration processing even if config wasn't created via files (-> rootDir present)
-        let rootDirectory = self.rootDirectory ?? FileManager.default.currentDirectoryPath.bridge().standardizingPath
+        let configurationRootDirectory = configurationPath?.bridge().deletingLastPathComponent
+            ?? FileManager.default.currentDirectoryPath.bridge().standardizingPath
 
         let directoryNSString = directory.bridge()
         let fullDirectory = directoryNSString.absolutePathRepresentation()
         let configurationSearchPath = directoryNSString.appendingPathComponent(Configuration.fileName)
-        let cacheIdentifier = "nestedPath" + rootDirectory + configurationSearchPath
+        let cacheIdentifier = "nestedPath" + configurationRootDirectory + configurationSearchPath
 
         if Configuration.getIsNestedConfigurationSelf(forIdentifier: cacheIdentifier) == true {
             return self
@@ -116,7 +113,7 @@ extension Configuration {
         } else {
             var config: Configuration
 
-            if directory == rootDirectory {
+            if directory == configurationRootDirectory {
                 // Use self if at level self
                 config = self
             } else if

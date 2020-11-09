@@ -240,7 +240,6 @@ extension Configuration {
             enableAllRules: options.enableAllRules,
             cachePath: cachePath
         )
-        #warning("TODO: Self.rootPath(from: options.paths),")
     }
 
     func visitLintableFiles(options: LintOrAnalyzeOptions, cache: LinterCache? = nil, storage: RuleStorage,

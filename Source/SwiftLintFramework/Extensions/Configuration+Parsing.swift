@@ -44,9 +44,10 @@ extension Configuration {
     ) throws {
         func defaultStringArray(_ object: Any?) -> [String] { return [String].array(of: object) ?? [] }
 
-        // Use either new 'opt_in_rules' or deprecated 'enabled_rules' for now.
+        // Use either the new 'opt_in_rules' or fallback to the deprecated 'enabled_rules'
         let optInRules = defaultStringArray(dict[Key.optInRules.rawValue] ?? dict[Key.enabledRules.rawValue])
         let disabledRules = defaultStringArray(dict[Key.disabledRules.rawValue])
+
         // Use either the new 'only_rules' or fallback to the deprecated 'whitelist_rules'
         let onlyRules = defaultStringArray(dict[Key.onlyRules.rawValue] ?? dict[Key.whitelistRules.rawValue])
         let analyzerRules = defaultStringArray(dict[Key.analyzerRules.rawValue])

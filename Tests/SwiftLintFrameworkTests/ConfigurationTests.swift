@@ -3,7 +3,7 @@ import SourceKittenFramework
 @testable import SwiftLintFramework
 import XCTest
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length
 
 private let optInRules = primaryRuleList.list.filter({ $0.1.init() is OptInRule }).map({ $0.0 })
 
@@ -152,16 +152,21 @@ class ConfigurationTests: XCTestCase, ProjectMock {
 
     func testDuplicatedRules() {
         let duplicateConfig1 = try? Configuration(dict: ["only_rules": ["todo", "todo"]])
-        XCTAssertNil(duplicateConfig1, "initializing Configuration with duplicate rules in " +
-            "Dictionary should fail")
+        XCTAssertEqual(
+            duplicateConfig1?.rules.count, 1, "duplicate rules should be removed when initializing Configuration"
+        )
 
         let duplicateConfig2 = try? Configuration(dict: ["opt_in_rules": [optInRules.first!, optInRules.first!]])
-        XCTAssertNil(duplicateConfig2, "initializing Configuration with duplicate rules in " +
-            "Dictionary should fail")
+        XCTAssertEqual(
+            duplicateConfig2?.rules.filter { type(of: $0).description.identifier == optInRules.first! }.count, 1,
+            "duplicate rules should be removed when initializing Configuration"
+        )
 
         let duplicateConfig3 = try? Configuration(dict: ["disabled_rules": ["todo", "todo"]])
-        XCTAssertNil(duplicateConfig3, "initializing Configuration with duplicate rules in " +
-            "Dictionary should fail")
+        XCTAssertEqual(
+            duplicateConfig3?.rulesWrapper.disabledRuleIdentifiers.count, 1,
+            "duplicate rules should be removed when initializing Configuration"
+        )
     }
 
     private class TestFileManager: LintableFileManager {
@@ -362,7 +367,11 @@ extension ConfigurationTests {
 
     func testExcludeByPrefixForceExcludesDirectory() {
         FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
-        let configuration = Configuration(excludedPaths: ["Level1/Level2", "Directory.swift"])
+        let configuration = Configuration(
+            excludedPaths: [
+                "Level1/Level2", "Directory.swift", "ChildConfig", "ParentConfig", "NestedConfig"
+            ]
+        )
         let paths = configuration.lintablePaths(inPath: ".",
                                                 forceExclude: true,
                                                 excludeByPrefix: true)
@@ -372,7 +381,11 @@ extension ConfigurationTests {
 
     func testExcludeByPrefixForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre() {
         FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
-        let configuration = Configuration(excludedPaths: ["Level1", "Directory.swift/DirectoryLevel1.swift"])
+        let configuration = Configuration(
+            excludedPaths: [
+                "Level1", "Directory.swift/DirectoryLevel1.swift", "ChildConfig", "ParentConfig", "NestedConfig"
+            ]
+        )
         let paths = configuration.lintablePaths(inPath: ".",
                                                 forceExclude: true,
                                                 excludeByPrefix: true)

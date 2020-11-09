@@ -36,6 +36,9 @@ public struct Configuration {
     /// The identifier for the `Reporter` to use to report style violations.
     public let reporter: String
 
+    /// The absolute path where this configuration was loaded from, if any.
+    public private(set) var configurationPath: String?
+
     /// The location of the persisted cache to use with this configuration.
     public let cachePath: String?
 
@@ -86,6 +89,7 @@ public struct Configuration {
         indentation = configuration.indentation
         warningThreshold = configuration.warningThreshold
         reporter = configuration.reporter
+        configurationPath = configuration.configurationPath
         cachePath = configuration.cachePath
         allowZeroLintableFiles = configuration.allowZeroLintableFiles
     }
@@ -195,8 +199,14 @@ public struct Configuration {
         let rulesMode: RulesMode = enableAllRules ? .allEnabled : .default(disabled: [], optIn: [])
         let cacheIdentifier = "\(rootDir) - \(configurationFiles)"
 
+        // The first configuration file is used because if multiple files are passed, the first is treated as the parent
+        defer {
+            configurationPath = configurationFiles.first?.bridge().absolutePathRepresentation(rootDirectory: rootDir)
+        }
+
         if let cachedConfig = Configuration.getCached(forIdentifier: cacheIdentifier) {
             self.init(copying: cachedConfig)
+            return
         }
 
         do {
@@ -244,6 +254,7 @@ extension Configuration: Hashable {
         hasher.combine(warningThreshold)
         hasher.combine(reporter)
         hasher.combine(allowZeroLintableFiles)
+        hasher.combine(configurationPath)
         hasher.combine(cachePath)
         hasher.combine(rules.map { type(of: $0).description.identifier })
         hasher.combine(fileGraph)
@@ -255,6 +266,7 @@ extension Configuration: Hashable {
             lhs.indentation == rhs.indentation &&
             lhs.warningThreshold == rhs.warningThreshold &&
             lhs.reporter == rhs.reporter &&
+            lhs.configurationPath == rhs.configurationPath &&
             lhs.cachePath == rhs.cachePath &&
             lhs.rules == rhs.rules &&
             lhs.fileGraph == rhs.fileGraph &&
@@ -267,8 +279,8 @@ extension Configuration: CustomStringConvertible {
     public var description: String {
         return "Configuration: \n"
             + "- Indentation Style: \(indentation)\n"
-            + "- Included: \(includedPaths)\n"
-            + "- Excluded: \(excludedPaths)\n"
+            + "- Included Paths: \(includedPaths)\n"
+            + "- Excluded Paths: \(excludedPaths)\n"
             + "- Warning Treshold: \(warningThreshold as Optional)\n"
             + "- Root Directory: \(rootDirectory as Optional)\n"
             + "- Reporter: \(reporter)\n"

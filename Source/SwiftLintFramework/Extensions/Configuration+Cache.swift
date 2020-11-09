@@ -71,11 +71,11 @@ extension Configuration {
         if let path = cachePath {
             baseURL = URL(fileURLWithPath: path)
         } else {
-            #if os(Linux)
+#if os(Linux)
             baseURL = URL(fileURLWithPath: "/var/tmp/")
-            #else
+#else
             baseURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            #endif
+#endif
         }
         let folder = baseURL.appendingPathComponent("SwiftLint/\(Version.current.value)")
 

@@ -172,7 +172,7 @@ extension ConfigurationAliasesTests {
         ("testConfiguresCorrectlyFromDeprecatedAlias", testConfiguresCorrectlyFromDeprecatedAlias),
         ("testReturnsNilWithDuplicatedConfiguration", testReturnsNilWithDuplicatedConfiguration),
         ("testInitsFromDeprecatedAlias", testInitsFromDeprecatedAlias),
-        ("testWhitelistRulesFromDeprecatedAlias", testWhitelistRulesFromDeprecatedAlias),
+        ("testOnlyRulesFromDeprecatedAlias", testOnlyRulesFromDeprecatedAlias),
         ("testDisabledRulesFromDeprecatedAlias", testDisabledRulesFromDeprecatedAlias)
     ]
 }
@@ -183,10 +183,10 @@ extension ConfigurationTests {
         ("testEmptyConfiguration", testEmptyConfiguration),
         ("testInitWithRelativePathAndRootPath", testInitWithRelativePathAndRootPath),
         ("testEnableAllRulesConfiguration", testEnableAllRulesConfiguration),
-        ("testWhitelistRules", testWhitelistRules),
+        ("testOnlyRules", testOnlyRules),
         ("testWarningThreshold_value", testWarningThreshold_value),
         ("testWarningThreshold_nil", testWarningThreshold_nil),
-        ("testOtherRuleConfigurationsAlongsideWhitelistRules", testOtherRuleConfigurationsAlongsideWhitelistRules),
+        ("testOtherRuleConfigurationsAlongsideOnlyRules", testOtherRuleConfigurationsAlongsideOnlyRules),
         ("testDisabledRules", testDisabledRules),
         ("testDisabledRulesWithUnknownRule", testDisabledRulesWithUnknownRule),
         ("testDuplicatedRules", testDuplicatedRules),
@@ -211,15 +211,22 @@ extension ConfigurationTests {
         ("testValidChildConfig", testValidChildConfig),
         ("testValidParentConfig", testValidParentConfig),
         ("testCommandLineChildConfigs", testCommandLineChildConfigs),
+        ("testExcludeByPrefixExcludedPaths", testExcludeByPrefixExcludedPaths),
+        ("testExcludeByPrefixForceExcludesFile", testExcludeByPrefixForceExcludesFile),
+        ("testExcludeByPrefixForceExcludesFileNotPresentInExcluded", testExcludeByPrefixForceExcludesFileNotPresentInExcluded),
+        ("testExcludeByPrefixForceExcludesDirectory", testExcludeByPrefixForceExcludesDirectory),
+        ("testExcludeByPrefixForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre", testExcludeByPrefixForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre),
+        ("testExcludeByPrefixGlobExcludePaths", testExcludeByPrefixGlobExcludePaths),
         ("testMerge", testMerge),
         ("testWarningThresholdMerging", testWarningThresholdMerging),
-        ("testWhitelistedRulesMerging", testWhitelistedRulesMerging),
+        ("testOnlyRulesMerging", testOnlyRulesMerging),
         ("testCustomRulesMerging", testCustomRulesMerging),
         ("testMergingAllowsDisablingParentsCustomRules", testMergingAllowsDisablingParentsCustomRules),
-        ("testNestedConfigurationLevel0", testNestedConfigurationLevel0),
-        ("testNestedConfigurationLevel1", testNestedConfigurationLevel1),
-        ("testNestedConfigurationLevel2", testNestedConfigurationLevel2),
-        ("testNestedConfigurationLevel3", testNestedConfigurationLevel3),
+        ("testLevel0", testLevel0),
+        ("testLevel1", testLevel1),
+        ("testLevel2", testLevel2),
+        ("testLevel3", testLevel3),
+        ("testNestedConfigurationForOnePathPassedIn", testNestedConfigurationForOnePathPassedIn),
         ("testParentConfigIsIgnoredAsNestedConfiguration", testParentConfigIsIgnoredAsNestedConfiguration)
     ]
 }
@@ -741,6 +748,14 @@ extension ImplicitlyUnwrappedOptionalRuleTests {
     ]
 }
 
+extension InclusiveLanguageRuleTests {
+    static var allTests: [(String, (InclusiveLanguageRuleTests) -> () throws -> Void)] = [
+        ("testWithDefaultConfiguration", testWithDefaultConfiguration),
+        ("testNonTriggeringExamplesWithNonDefaultConfig", testNonTriggeringExamplesWithNonDefaultConfig),
+        ("testTriggeringExamplesWithNonDefaultConfig", testTriggeringExamplesWithNonDefaultConfig)
+    ]
+}
+
 extension IndentationWidthRuleTests {
     static var allTests: [(String, (IndentationWidthRuleTests) -> () throws -> Void)] = [
         ("testFirstLineIndentation", testFirstLineIndentation),
@@ -766,8 +781,7 @@ extension IntegrationTests {
     static var allTests: [(String, (IntegrationTests) -> () throws -> Void)] = [
         ("testSwiftLintLints", testSwiftLintLints),
         ("testSwiftLintAutoCorrects", testSwiftLintAutoCorrects),
-        ("testSimulateHomebrewTest", testSimulateHomebrewTest),
-        ("testSimulateHomebrewTestWithDisableSourceKit", testSimulateHomebrewTestWithDisableSourceKit)
+        ("testSimulateHomebrewTest", testSimulateHomebrewTest)
     ]
 }
 
@@ -889,7 +903,7 @@ extension LinterCacheTests {
         ("testDisabledRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted", testDisabledRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted),
         ("testOptInRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted", testOptInRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted),
         ("testEnabledRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted", testEnabledRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted),
-        ("testOnlyRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted", testWhitelistRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted),
+        ("testOnlyRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted", testOnlyRulesChangedOrAddedOrRemovedCausesAllFilesToBeReLinted),
         ("testRuleConfigurationChangedOrAddedOrRemovedCausesAllFilesToBeReLinted", testRuleConfigurationChangedOrAddedOrRemovedCausesAllFilesToBeReLinted),
         ("testSwiftVersionChangedRemovedCausesAllFilesToBeReLinted", testSwiftVersionChangedRemovedCausesAllFilesToBeReLinted)
     ]
@@ -1074,7 +1088,8 @@ extension ObjectLiteralRuleTests {
 
 extension OpeningBraceRuleTests {
     static var allTests: [(String, (OpeningBraceRuleTests) -> () throws -> Void)] = [
-        ("testWithDefaultConfiguration", testWithDefaultConfiguration)
+        ("testOpeningBraceWithDefaultConfiguration", testOpeningBraceWithDefaultConfiguration),
+        ("testWithAllowMultilineTrue", testWithAllowMultilineTrue)
     ]
 }
 
@@ -1117,6 +1132,12 @@ extension ParserDiagnosticsTests {
 
 extension PatternMatchingKeywordsRuleTests {
     static var allTests: [(String, (PatternMatchingKeywordsRuleTests) -> () throws -> Void)] = [
+        ("testWithDefaultConfiguration", testWithDefaultConfiguration)
+    ]
+}
+
+extension PreferNimbleRuleTests {
+    static var allTests: [(String, (PreferNimbleRuleTests) -> () throws -> Void)] = [
         ("testWithDefaultConfiguration", testWithDefaultConfiguration)
     ]
 }
@@ -1290,11 +1311,11 @@ extension ReporterTests {
         ("testJSONReporter", testJSONReporter),
         ("testCSVReporter", testCSVReporter),
         ("testCheckstyleReporter", testCheckstyleReporter),
+        ("testCodeClimateReporter", testCodeClimateReporter),
         ("testJunitReporter", testJunitReporter),
         ("testHTMLReporter", testHTMLReporter),
         ("testSonarQubeReporter", testSonarQubeReporter),
-        ("testMarkdownReporter", testMarkdownReporter),
-        ("testCodeClimateReporter", testCodeClimateReporter)
+        ("testMarkdownReporter", testMarkdownReporter)
     ]
 }
 
@@ -1468,6 +1489,12 @@ extension SyntacticSugarRuleTests {
     ]
 }
 
+extension TestCaseAccessibilityRuleTests {
+    static var allTests: [(String, (TestCaseAccessibilityRuleTests) -> () throws -> Void)] = [
+        ("testWithDefaultConfiguration", testWithDefaultConfiguration)
+    ]
+}
+
 extension TodoRuleTests {
     static var allTests: [(String, (TodoRuleTests) -> () throws -> Void)] = [
         ("testTodo", testTodo),
@@ -1548,12 +1575,6 @@ extension UnavailableFunctionRuleTests {
 
 extension UnneededBreakInSwitchRuleTests {
     static var allTests: [(String, (UnneededBreakInSwitchRuleTests) -> () throws -> Void)] = [
-        ("testWithDefaultConfiguration", testWithDefaultConfiguration)
-    ]
-}
-
-extension UnneededNotificationCenterRemovalRuleTests {
-    static var allTests: [(String, (UnneededNotificationCenterRemovalRuleTests) -> () throws -> Void)] = [
         ("testWithDefaultConfiguration", testWithDefaultConfiguration)
     ]
 }
@@ -1823,6 +1844,7 @@ XCTMain([
     testCase(ImplicitReturnRuleTests.allTests),
     testCase(ImplicitlyUnwrappedOptionalConfigurationTests.allTests),
     testCase(ImplicitlyUnwrappedOptionalRuleTests.allTests),
+    testCase(InclusiveLanguageRuleTests.allTests),
     testCase(IndentationWidthRuleTests.allTests),
     testCase(InertDeferRuleTests.allTests),
     testCase(IntegrationTests.allTests),
@@ -1875,6 +1897,7 @@ XCTMain([
     testCase(OverrideInExtensionRuleTests.allTests),
     testCase(ParserDiagnosticsTests.allTests),
     testCase(PatternMatchingKeywordsRuleTests.allTests),
+    testCase(PreferNimbleRuleTests.allTests),
     testCase(PreferSelfTypeOverTypeOfSelfRuleTests.allTests),
     testCase(PreferZeroOverExplicitInitRuleTests.allTests),
     testCase(PrefixedTopLevelConstantRuleTests.allTests),
@@ -1920,6 +1943,7 @@ XCTMain([
     testCase(SwitchCaseAlignmentRuleTests.allTests),
     testCase(SwitchCaseOnNewlineRuleTests.allTests),
     testCase(SyntacticSugarRuleTests.allTests),
+    testCase(TestCaseAccessibilityRuleTests.allTests),
     testCase(TodoRuleTests.allTests),
     testCase(ToggleBoolRuleTests.allTests),
     testCase(TrailingClosureConfigurationTests.allTests),
@@ -1932,7 +1956,6 @@ XCTMain([
     testCase(TypeNameRuleTests.allTests),
     testCase(UnavailableFunctionRuleTests.allTests),
     testCase(UnneededBreakInSwitchRuleTests.allTests),
-    testCase(UnneededNotificationCenterRemovalRuleTests.allTests),
     testCase(UnneededParenthesesInClosureArgumentRuleTests.allTests),
     testCase(UnownedVariableCaptureRuleTests.allTests),
     testCase(UntypedErrorInCatchRuleTests.allTests),

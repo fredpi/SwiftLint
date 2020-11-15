@@ -28,6 +28,14 @@ class ConfigurationTests: XCTestCase, ProjectMock {
                   "initializing Configuration with valid Dictionary should succeed")
     }
 
+    func testNoConfiguration() {
+        // Change to a folder where there is no `.swiftlint.yml`
+        FileManager.default.changeCurrentDirectoryPath(projectMockEmptyFolder)
+
+        // Test whether the default configuration is used if there is no `.swiftlint.yml` or other config file
+        XCTAssertEqual(Configuration(configurationFiles: []), Configuration.default)
+    }
+
     func testEmptyConfiguration() {
         guard let config = try? Configuration(dict: [:]) else {
             XCTFail("empty YAML string should yield non-nil Configuration")
@@ -247,14 +255,6 @@ class ConfigurationTests: XCTestCase, ProjectMock {
     }
 
     // MARK: - Testing Custom Configuration File
-
-    func testNoConfiguration() {
-        // Change to a folder where there is no `.swiftlint.yml`
-        FileManager.default.changeCurrentDirectoryPath(projectMockEmptyFolder)
-
-        // Test whether the default configuration is used if there is no `.swiftlint.yml` or other config file
-        XCTAssertEqual(Configuration(configurationFiles: []), Configuration.default)
-    }
 
     func testCustomConfiguration() {
         let file = SwiftLintFile(path: projectMockSwift0)!

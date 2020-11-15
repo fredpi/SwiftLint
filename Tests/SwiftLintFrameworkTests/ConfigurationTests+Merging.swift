@@ -121,7 +121,7 @@ extension ConfigurationTests {
 
         XCTAssertEqual(
             config,
-            projectMockConfig0.merged(withChild: config2, rootDirectory: config.rootDirectory ?? "")
+            projectMockConfig0.merged(withChild: config2, rootDirectory: config.rootDirectory)
         )
     }
 
@@ -132,7 +132,7 @@ extension ConfigurationTests {
 
         XCTAssertEqual(
             config,
-            projectMockConfig0.merged(withChild: config3, rootDirectory: config.rootDirectory ?? "")
+            projectMockConfig0.merged(withChild: config3, rootDirectory: config.rootDirectory)
         )
     }
 

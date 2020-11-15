@@ -35,19 +35,19 @@ extension Configuration {
     ) -> (includedPaths: [String], excludedPaths: [String]) {
         // Render paths relative to their respective root paths → makes them comparable
         let childConfigIncluded = childConfiguration.includedPaths.map {
-            $0.bridge().absolutePathRepresentation(rootDirectory: childConfiguration.rootDirectory ?? "")
+            $0.bridge().absolutePathRepresentation(rootDirectory: childConfiguration.rootDirectory)
         }
 
         let childConfigExcluded = childConfiguration.excludedPaths.map {
-            $0.bridge().absolutePathRepresentation(rootDirectory: childConfiguration.rootDirectory ?? "")
+            $0.bridge().absolutePathRepresentation(rootDirectory: childConfiguration.rootDirectory)
         }
 
         let parentConfigIncluded = includedPaths.map {
-            $0.bridge().absolutePathRepresentation(rootDirectory: self.rootDirectory ?? "")
+            $0.bridge().absolutePathRepresentation(rootDirectory: self.rootDirectory)
         }
 
         let parentConfigExcluded = excludedPaths.map {
-            $0.bridge().absolutePathRepresentation(rootDirectory: self.rootDirectory ?? "")
+            $0.bridge().absolutePathRepresentation(rootDirectory: self.rootDirectory)
         }
 
         // Prefer child configuration over parent configuration
@@ -92,7 +92,7 @@ extension Configuration {
 
         let directoryNSString = directory.bridge()
         let configurationSearchPath = directoryNSString.appendingPathComponent(Configuration.defaultFileName)
-        let cacheIdentifier = "nestedPath" + (rootDirectory ?? "") + configurationSearchPath
+        let cacheIdentifier = "nestedPath" + rootDirectory + configurationSearchPath
 
         if Configuration.getIsNestedConfigurationSelf(forIdentifier: cacheIdentifier) == true {
             return self
@@ -106,7 +106,7 @@ extension Configuration {
                 config = self
             } else if
                 FileManager.default.fileExists(atPath: configurationSearchPath),
-                fileGraph?.includesFile(atPath: configurationSearchPath) != true
+                fileGraph.includesFile(atPath: configurationSearchPath) != true
             {
                 // Use self merged with the nested config that was found
                 // iff that nested config has not already been used to build the main config
@@ -117,7 +117,7 @@ extension Configuration {
                     ignoreParentAndChildConfigs: true
                 )
                 childConfiguration.fileGraph = FileGraph(rootDirectory: directory)
-                config = merged(withChild: childConfiguration, rootDirectory: rootDirectory ?? "")
+                config = merged(withChild: childConfiguration, rootDirectory: rootDirectory)
 
                 // Cache merged result to circumvent heavy merge recomputations
                 config.setCached(forIdentifier: cacheIdentifier)

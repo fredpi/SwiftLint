@@ -55,10 +55,7 @@ extension Configuration {
         let cacheRulesDescriptions = rules
             .map { rule in [type(of: rule).description.identifier, rule.cacheDescription] }
             .sorted { $0[0] < $1[0] }
-        let jsonObject: [Any] = [
-            rootDirectory ?? FileManager.default.currentDirectoryPath.bridge().standardizingPath,
-            cacheRulesDescriptions
-        ]
+        let jsonObject: [Any] = [rootDirectory, cacheRulesDescriptions]
         if let jsonData = try? JSONSerialization.data(withJSONObject: jsonObject),
             let jsonString = String(data: jsonData, encoding: .utf8) {
             return jsonString.md5()

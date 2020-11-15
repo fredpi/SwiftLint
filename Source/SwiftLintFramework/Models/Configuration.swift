@@ -5,7 +5,10 @@ import SourceKittenFramework
 public struct Configuration {
     // MARK: - Properties: Static
     /// The default Configuration resulting from an empty configuration file.
-    public static let `default` = Configuration()
+    public static var `default`: Configuration {
+        // This is realized via a getter to account for differences of the current working directory
+        return Configuration()
+    }
 
     /// The default file name to look for user-defined configurations.
     public static let defaultFileName = ".swiftlint.yml"
@@ -16,9 +19,11 @@ public struct Configuration {
         return rulesWrapper.resultingRules
     }
 
-    /// The root directory of the files used for this Configuration, if some
-    public var rootDirectory: String? {
-        return fileGraph?.rootDirectory
+    /// The root directory is the directory that included & excluded paths relate to.
+    /// By default, the root directory is the current working directory,
+    /// but in some merging algorithms it is used differently.
+    public var rootDirectory: String {
+        return fileGraph.rootDirectory
     }
 
     /// The paths that should be included when linting
@@ -53,14 +58,14 @@ public struct Configuration {
 
     // MARK: Internal Instance
     internal var computedCacheDescription: String?
-    internal var fileGraph: FileGraph?
+    internal var fileGraph: FileGraph
     internal private(set) var rulesWrapper: RulesWrapper
 
     // MARK: - Initializers: Internal
     /// Initialize with all properties
     internal init(
         rulesWrapper: RulesWrapper,
-        fileGraph: FileGraph?,
+        fileGraph: FileGraph,
         includedPaths: [String],
         excludedPaths: [String],
         indentation: IndentationStyle,
@@ -104,6 +109,8 @@ public struct Configuration {
     /// - parameter allRulesWrapped:        The rules with their own configurations already applied.
     /// - parameter ruleList:               The list of all rules. Used for alias resolving and as a fallback
     ///                                     if `allRulesWrapped` is nil.
+    /// - parameter filePath                The underlaying file graph. If `nil` is specified, a empty file graph
+    ///                                     with the current working directory as the `rootDirectory` will be used
     /// - parameter includedPaths:          Included paths to lint.
     /// - parameter excludedPaths:          Excluded paths to not lint.
     /// - parameter indentation:            The style to use when indenting Swift source code.
@@ -141,7 +148,9 @@ public struct Configuration {
                 allRulesWrapped: allRulesWrapped ?? (try? ruleList.allRulesWrapped()) ?? [],
                 aliasResolver: { ruleList.identifier(for: $0) ?? $0 }
             ),
-            fileGraph: fileGraph,
+            fileGraph: fileGraph ?? FileGraph(
+                rootDirectory: FileManager.default.currentDirectoryPath.bridge().absolutePathStandardized()
+            ),
             includedPaths: includedPaths,
             excludedPaths: excludedPaths,
             indentation: indentation,

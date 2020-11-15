@@ -67,10 +67,8 @@ extension Configuration {
 
         var groupedFiles = [Configuration: [SwiftLintFile]]()
         for file in files {
-            // If config was specified as a command line argument, always use it as an override. Otherwise, look for
-            // configs as normal, merging as necessary
-            let fileConfiguration = configurationSpecified() ? self : configuration(for: file)
-            let fileConfigurationRootPath = (fileConfiguration.rootDirectory ?? "").bridge()
+            let fileConfiguration = configuration(for: file)
+            let fileConfigurationRootPath = fileConfiguration.rootDirectory.bridge()
 
             // Files whose configuration specifies they should be excluded will be skipped
             let shouldSkip = fileConfiguration.excludedPaths.contains { excludedRelativePath in
@@ -95,8 +93,7 @@ extension Configuration {
         }
 
         var pathComponents = path.bridge().pathComponents
-        let root = rootDirectory ?? FileManager.default.currentDirectoryPath.bridge().standardizingPath
-        for component in root.bridge().pathComponents where pathComponents.first == component {
+        for component in rootDirectory.bridge().pathComponents where pathComponents.first == component {
             pathComponents.removeFirst()
         }
 

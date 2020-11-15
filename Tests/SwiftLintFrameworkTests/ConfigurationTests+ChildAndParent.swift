@@ -5,78 +5,38 @@ import XCTest
 extension ConfigurationTests {
     // MARK: - Methods: Tests
     func testValidChildConfig() {
-        let previousWorkingDir = FileManager.default.currentDirectoryPath
-
         for path in [projectMockPathChildConfigValid1, projectMockPathChildConfigValid2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
             assertEqual(
-                Configuration(
-                    configurationFiles: ["child_config_main.yml"],
-                    rootPath: path,
-                    optional: false,
-                    quiet: true
-                ),
-                Configuration(
-                    configurationFiles: ["child_config_expected.yml"],
-                    rootPath: path,
-                    optional: false,
-                    quiet: true
-                )
+                Configuration(configurationFiles: ["child_config_main.yml"]),
+                Configuration(configurationFiles: ["child_config_expected.yml"])
             )
         }
-
-        FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)
     }
 
     func testValidParentConfig() {
-        let previousWorkingDir = FileManager.default.currentDirectoryPath
-
         for path in [projectMockPathParentConfigValid1, projectMockPathParentConfigValid2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
             assertEqual(
-                Configuration(
-                    configurationFiles: ["parent_config_main.yml"],
-                    rootPath: path,
-                    optional: false,
-                    quiet: true
-                ),
-                Configuration(
-                    configurationFiles: ["parent_config_expected.yml"],
-                    rootPath: path,
-                    optional: false,
-                    quiet: true
-                )
+                Configuration(configurationFiles: ["parent_config_main.yml"]),
+                Configuration(configurationFiles: ["parent_config_expected.yml"])
             )
         }
-
-        FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)
     }
 
     func testCommandLineChildConfigs() {
-        let previousWorkingDir = FileManager.default.currentDirectoryPath
-
         for path in [projectMockPathChildConfigValid1, projectMockPathChildConfigValid2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
             assertEqual(
                 Configuration(
-                    configurationFiles: ["child_config_main.yml", "child_config_child1.yml", "child_config_child2.yml"],
-                    rootPath: path,
-                    optional: false,
-                    quiet: true
+                    configurationFiles: ["child_config_main.yml", "child_config_child1.yml", "child_config_child2.yml"]
                 ),
-                Configuration(
-                    configurationFiles: ["child_config_expected.yml"],
-                    rootPath: path,
-                    optional: false,
-                    quiet: true
-                )
+                Configuration(configurationFiles: ["child_config_expected.yml"])
             )
         }
-
-        FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)
     }
 
     // MARK: Helpers

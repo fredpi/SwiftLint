@@ -7,8 +7,8 @@ public struct Configuration {
     /// The default Configuration resulting from an empty configuration file.
     public static let `default` = Configuration()
 
-    /// The standard file name to look for user-defined configurations.
-    public static let fileName = ".swiftlint.yml"
+    /// The default file name to look for user-defined configurations.
+    public static let defaultFileName = ".swiftlint.yml"
 
     // MARK: Public Instance
     /// All rules enabled in this configuration
@@ -36,14 +36,16 @@ public struct Configuration {
     /// The identifier for the `Reporter` to use to report style violations.
     public let reporter: String
 
-    /// The absolute path where this configuration was loaded from, if any.
-    public private(set) var configurationPath: String?
-
     /// The location of the persisted cache to use with this configuration.
     public let cachePath: String?
 
     /// Allow or disallow SwiftLint to exit successfully when passed only ignored or unlintable files.
     public let allowZeroLintableFiles: Bool
+
+    /// This value is `true` iff the `--config` parameter was used to specify (a) configuration file(s)
+    /// In particular, this means that the value is also `true` if the `--config` parameter
+    /// was used to explicitly specify the default `.swiftlint.yml` as the configuration file
+    public private(set) var basedOnCustomConfigurationFiles: Bool = false
 
     // MARK: Public Computed
     /// The rules mode used for this configuration.
@@ -52,7 +54,7 @@ public struct Configuration {
     // MARK: Internal Instance
     internal var computedCacheDescription: String?
     internal var fileGraph: FileGraph?
-    internal var rulesWrapper: RulesWrapper
+    internal private(set) var rulesWrapper: RulesWrapper
 
     // MARK: - Initializers: Internal
     /// Initialize with all properties
@@ -89,7 +91,7 @@ public struct Configuration {
         indentation = configuration.indentation
         warningThreshold = configuration.warningThreshold
         reporter = configuration.reporter
-        configurationPath = configuration.configurationPath
+        basedOnCustomConfigurationFiles = configuration.basedOnCustomConfigurationFiles
         cachePath = configuration.cachePath
         allowZeroLintableFiles = configuration.allowZeroLintableFiles
     }
@@ -153,66 +155,38 @@ public struct Configuration {
     // MARK: Public
     /// Creates a `Configuration` with convenience parameters.
     ///
-    /// - parameter configurationFiles:         The path on disk to one or multiple configuration files.
-    /// - parameter rootPath:                   The root directory to search for nested configurations.
-    /// - parameter optional:                   If false, the initializer will trap if the file isn't found.
-    /// - parameter quiet:                      If false, a message will be logged to stderr
-    ///                                         when the configuration file is loaded.
+    /// - parameter configurationFiles:         The path on disk to one or multiple configuration files. If this array
+    ///                                         is empty, the default `.swiftlint.yml` file will be used.
     /// - parameter enableAllRules:             Enable all available rules.
     /// - parameter cachePath:                  The location of the persisted cache to
     ///                                         use whith this configuration.
     /// - parameter ignoreParentAndChildConfigs:If true, child and parent config references will be ignored.
-    public init( // swiftlint:disable:this function_body_length
-        configurationFiles: [String],
-        rootPath: String? = nil,
-        optional: Bool = true,
-        quiet: Bool = false,
+    public init(
+        configurationFiles: [String], // No default value here to avoid ambiguous Configuration() initializer
         enableAllRules: Bool = false,
         cachePath: String? = nil,
         ignoreParentAndChildConfigs: Bool = false
     ) {
-        func rootDirectory(from rootPath: String?) -> String? {
-            var isDirectory: ObjCBool = false
-            guard
-                let rootPath = rootPath,
-                FileManager.default.fileExists(atPath: rootPath, isDirectory: &isDirectory)
-            else {
-                return nil
-            }
+        // Store whether there are custom configuration files; use default config file name if there are none
+        let hasCustomConfigurationFiles: Bool = configurationFiles.isNotEmpty
+        let configurationFiles = configurationFiles.isEmpty ? [Configuration.defaultFileName] : configurationFiles
+        defer { basedOnCustomConfigurationFiles = hasCustomConfigurationFiles }
 
-            return isDirectory.boolValue ? rootPath : rootPath.bridge().deletingLastPathComponent
-        }
-
-        let rootDir: String
-        var configurationFiles = configurationFiles
-        if let root = rootDirectory(from: rootPath) {
-            rootDir = root
-        } else if let rootDirComps = configurationFiles.first?.components(separatedBy: "/").dropLast(),
-            !rootDirComps.isEmpty,
-            !(configurationFiles.contains { $0.components(separatedBy: "/").dropLast() != rootDirComps }) {
-            rootDir = rootDirComps.joined(separator: "/")
-            configurationFiles = configurationFiles.map { $0.components(separatedBy: "/").last ?? "" }
-        } else {
-            rootDir = ""
-        }
-
+        let rootDirectory = FileManager.default.currentDirectoryPath.bridge().absolutePathStandardized()
         let rulesMode: RulesMode = enableAllRules ? .allEnabled : .default(disabled: [], optIn: [])
-        let cacheIdentifier = "\(rootDir) - \(configurationFiles)"
 
-        // The first configuration file is used because if multiple files are passed, the first is treated as the parent
-        defer {
-            configurationPath = configurationFiles.first?.bridge().absolutePathRepresentation(rootDirectory: rootDir)
-        }
-
+        // Try obtaining cached config
+        let cacheIdentifier = "\(rootDirectory) - \(configurationFiles)"
         if let cachedConfig = Configuration.getCached(forIdentifier: cacheIdentifier) {
             self.init(copying: cachedConfig)
             return
         }
 
+        // Try building configuration via the file graph
         do {
             var fileGraph = FileGraph(
                 commandLineChildConfigs: configurationFiles,
-                rootDirectory: rootDir,
+                rootDirectory: rootDirectory,
                 ignoreParentAndChildConfigs: ignoreParentAndChildConfigs
             )
             let resultingConfiguration = try fileGraph.resultingConfiguration(enableAllRules: enableAllRules)
@@ -233,14 +207,15 @@ public struct Configuration {
                 errorString = "Unknown Error"
             }
 
-            guard optional else {
+            if hasCustomConfigurationFiles {
+                // Files that were explicitly specified could not be loaded -> fail
                 queuedPrintError("error: \(errorString)")
                 queuedFatalError("Could not read configuration")
+            } else {
+                // No files were explicitly specified, so maybe the user doesn't want a config at all -> warn
+                queuedPrintError("warning: \(errorString) – Falling back to default configuration")
+                self.init(rulesMode: rulesMode, cachePath: cachePath)
             }
-
-            // Fallback to default config (with custom rules mode)
-            queuedPrintError("warning: \(errorString) – Falling back to default Configuration")
-            self.init(rulesMode: rulesMode, cachePath: cachePath)
         }
     }
 }
@@ -254,7 +229,7 @@ extension Configuration: Hashable {
         hasher.combine(warningThreshold)
         hasher.combine(reporter)
         hasher.combine(allowZeroLintableFiles)
-        hasher.combine(configurationPath)
+        hasher.combine(basedOnCustomConfigurationFiles)
         hasher.combine(cachePath)
         hasher.combine(rules.map { type(of: $0).description.identifier })
         hasher.combine(fileGraph)
@@ -266,7 +241,7 @@ extension Configuration: Hashable {
             lhs.indentation == rhs.indentation &&
             lhs.warningThreshold == rhs.warningThreshold &&
             lhs.reporter == rhs.reporter &&
-            lhs.configurationPath == rhs.configurationPath &&
+            lhs.basedOnCustomConfigurationFiles == rhs.basedOnCustomConfigurationFiles &&
             lhs.cachePath == rhs.cachePath &&
             lhs.rules == rhs.rules &&
             lhs.fileGraph == rhs.fileGraph &&

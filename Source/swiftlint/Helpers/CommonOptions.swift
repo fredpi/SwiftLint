@@ -13,7 +13,7 @@ func pathsArgument(action: String) -> Argument<[String]> {
 }
 
 let configOption = Option(key: "config",
-                          defaultValue: [Configuration.fileName],
+                          defaultValue: [String](),
                           usage: "the path to one or more SwiftLint configuration files, "
                             + "evaluated as a parent-child hierarchy")
 

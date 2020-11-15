@@ -3,16 +3,16 @@ import SourceKittenFramework
 @testable import SwiftLintFramework
 import XCTest
 
-// swiftlint:disable type_body_length file_length
-
 private let optInRules = primaryRuleList.list.filter({ $0.1.init() is OptInRule }).map({ $0.0 })
 
 class ConfigurationTests: XCTestCase, ProjectMock {
+    // MARK: Setup & Teardown
     private var previousWorkingDir: String!
 
     override func setUp() {
         super.setUp()
         previousWorkingDir = FileManager.default.currentDirectoryPath
+        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
     }
 
     override func tearDown() {
@@ -20,6 +20,7 @@ class ConfigurationTests: XCTestCase, ProjectMock {
         FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)
     }
 
+    // MARK: Tests
     func testInit() {
         XCTAssert((try? Configuration(dict: [:])) != nil,
                   "initializing Configuration with empty Dictionary should succeed")
@@ -42,17 +43,9 @@ class ConfigurationTests: XCTestCase, ProjectMock {
     }
 
     func testInitWithRelativePathAndRootPath() {
-        let previousWorkingDir = FileManager.default.currentDirectoryPath
-        let rootPath = projectMockSwift0
         let expectedConfig = projectMockConfig0
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
 
-        let config = Configuration(
-            configurationFiles: [".swiftlint.yml"],
-            rootPath: rootPath,
-            optional: false,
-            quiet: true
-        )
+        let config = Configuration(configurationFiles: [".swiftlint.yml"])
 
         XCTAssertEqual(config.rulesWrapper.disabledRuleIdentifiers, expectedConfig.rulesWrapper.disabledRuleIdentifiers)
         XCTAssertEqual(config.includedPaths, expectedConfig.includedPaths)
@@ -60,8 +53,6 @@ class ConfigurationTests: XCTestCase, ProjectMock {
         XCTAssertEqual(config.indentation, expectedConfig.indentation)
         XCTAssertEqual(config.reporter, expectedConfig.reporter)
         XCTAssertTrue(config.allowZeroLintableFiles)
-
-        FileManager.default.changeCurrentDirectoryPath(previousWorkingDir)
     }
 
     func testEnableAllRulesConfiguration() {
@@ -257,6 +248,14 @@ class ConfigurationTests: XCTestCase, ProjectMock {
 
     // MARK: - Testing Custom Configuration File
 
+    func testNoConfiguration() {
+        // Change to a folder where there is no `.swiftlint.yml`
+        FileManager.default.changeCurrentDirectoryPath(projectMockEmptyFolder)
+
+        // Test whether the default configuration is used if there is no `.swiftlint.yml` or other config file
+        XCTAssertEqual(Configuration(configurationFiles: []), Configuration.default)
+    }
+
     func testCustomConfiguration() {
         let file = SwiftLintFile(path: projectMockSwift0)!
         XCTAssertNotEqual(projectMockConfig0.configuration(for: file),
@@ -264,24 +263,14 @@ class ConfigurationTests: XCTestCase, ProjectMock {
     }
 
     func testConfigurationWithSwiftFileAsRoot() {
-        let configuration = Configuration(
-            configurationFiles: [projectMockYAML0],
-            rootPath: projectMockSwift0,
-            optional: false,
-            quiet: true
-        )
+        let configuration = Configuration(configurationFiles: [projectMockYAML0])
 
         let file = SwiftLintFile(path: projectMockSwift0)!
         XCTAssertEqual(configuration.configuration(for: file), configuration)
     }
 
     func testConfigurationWithSwiftFileAsRootAndCustomConfiguration() {
-        let configuration = Configuration(
-            configurationFiles: [projectMockYAML0CustomPath],
-            rootPath: projectMockSwift0,
-            optional: false,
-            quiet: true
-        )
+        let configuration = Configuration(configurationFiles: [projectMockYAML0CustomPath])
 
         let file = SwiftLintFile(path: projectMockSwift0)!
         XCTAssertEqual(configuration.configuration(for: file), configuration)

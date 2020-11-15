@@ -234,9 +234,6 @@ extension Configuration {
         let cachePath = options.cachePath.isEmpty ? nil : options.cachePath
         self.init(
             configurationFiles: options.configurationFiles,
-            rootPath: FileManager.default.currentDirectoryPath.bridge().absolutePathStandardized(),
-            optional: isConfigOptional(),
-            quiet: options.quiet,
             enableAllRules: options.enableAllRules,
             cachePath: cachePath
         )
@@ -259,9 +256,6 @@ extension Configuration {
         let cachePath = options.cachePath.isEmpty ? nil : options.cachePath
         self.init(
             configurationFiles: options.configurationFiles,
-            rootPath: FileManager.default.currentDirectoryPath.bridge().absolutePathStandardized(),
-            optional: isConfigOptional(),
-            quiet: options.quiet,
             cachePath: cachePath
         )
     }
@@ -269,14 +263,9 @@ extension Configuration {
     // MARK: Rules command
     init(options: RulesOptions) {
         self.init(
-            configurationFiles: options.configurationFiles,
-            optional: isConfigOptional()
+            configurationFiles: options.configurationFiles
         )
     }
-}
-
-private func isConfigOptional() -> Bool {
-    return !CommandLine.arguments.contains("--config")
 }
 
 private func configurationSpecified() -> Bool {

@@ -272,7 +272,7 @@ private func testCorrection(_ correction: (Example, Example),
         let ruleToConfigure = (onlyRules.first { $0 != SuperfluousDisableCommandRule.description.identifier }),
         case let configDict = ["only_roles": onlyRules, ruleToConfigure: correctionConfiguration],
         let typedConfiguration = try? Configuration(dict: configDict) {
-        config = configuration.merged(withChild: typedConfiguration)
+        config = configuration.merged(withChild: typedConfiguration, rootDirectory: configuration.rootDirectory ?? "")
     }
 
     config.assertCorrection(correction.0, expected: correction.1)

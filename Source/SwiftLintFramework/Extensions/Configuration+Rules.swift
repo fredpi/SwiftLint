@@ -22,7 +22,7 @@ internal extension Configuration {
         private let resultingRulesLock = NSLock()
 
         /// All rules enabled in this configuration,
-        /// derived from rule mode (whitelist / optIn - disabled) & existing rules
+        /// derived from rule mode (only / optIn - disabled) & existing rules
         var resultingRules: [Rule] {
             // Lock for thread-safety (that's also why this is not a lazy var)
             resultingRulesLock.lock()
@@ -137,7 +137,7 @@ internal extension Configuration {
             case var .only(childOnlyRules):
                 childOnlyRules = child.validate(ruleIds: childOnlyRules, valid: validRuleIdentifiers)
 
-                // Always use the child whitelist
+                // Always use the child only rules
                 newMode = .only(childOnlyRules)
 
             case .allEnabled:
@@ -240,7 +240,7 @@ internal extension Configuration {
             case var .only(onlyRules):
                 onlyRules = validate(ruleIds: onlyRules, valid: validRuleIdentifiers)
 
-                // Allow parent whitelist rules that weren't disabled via the child config
+                // Allow parent only rules that weren't disabled via the child config
                 // & opt-ins from the child config
                 return .only(Set(
                     childOptIn + onlyRules.filter { !childDisabled.contains($0) }

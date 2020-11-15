@@ -199,6 +199,7 @@ extension ConfigurationTests {
         ("testGlobExcludePaths", testGlobExcludePaths),
         ("testIsEqualTo", testIsEqualTo),
         ("testIsNotEqualTo", testIsNotEqualTo),
+        ("testNoConfiguration", testNoConfiguration),
         ("testCustomConfiguration", testCustomConfiguration),
         ("testConfigurationWithSwiftFileAsRoot", testConfigurationWithSwiftFileAsRoot),
         ("testConfigurationWithSwiftFileAsRootAndCustomConfiguration", testConfigurationWithSwiftFileAsRootAndCustomConfiguration),
@@ -1457,6 +1458,12 @@ extension StrictFilePrivateRuleTests {
     ]
 }
 
+extension StringExtensionTests {
+    static var allTests: [(String, (StringExtensionTests) -> () throws -> Void)] = [
+        ("testRelativePathExpression", testRelativePathExpression)
+    ]
+}
+
 extension StrongIBOutletRuleTests {
     static var allTests: [(String, (StrongIBOutletRuleTests) -> () throws -> Void)] = [
         ("testWithDefaultConfiguration", testWithDefaultConfiguration)
@@ -1938,6 +1945,7 @@ XCTMain([
     testCase(StatementPositionRuleTests.allTests),
     testCase(StaticOperatorRuleTests.allTests),
     testCase(StrictFilePrivateRuleTests.allTests),
+    testCase(StringExtensionTests.allTests),
     testCase(StrongIBOutletRuleTests.allTests),
     testCase(SwiftVersionTests.allTests),
     testCase(SwitchCaseAlignmentRuleTests.allTests),

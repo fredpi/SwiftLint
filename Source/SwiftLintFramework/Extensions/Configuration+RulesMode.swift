@@ -36,7 +36,7 @@ public extension Configuration {
                     throw ConfigurationError.generic(
                         "'\(Configuration.Key.disabledRules.rawValue)' or " +
                             "'\(Configuration.Key.optInRules.rawValue)' cannot be used in combination " +
-                        "with '\(Configuration.Key.whitelistRules.rawValue)'"
+                        "with '\(Configuration.Key.onlyRules.rawValue)'"
                     )
                 }
 

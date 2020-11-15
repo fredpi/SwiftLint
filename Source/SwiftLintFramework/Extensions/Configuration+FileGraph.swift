@@ -129,7 +129,7 @@ internal extension Configuration {
             }
 
             return try merged(
-                configurationDicts: try validate(),
+                configurationData: try validate(),
                 enableAllRules: enableAllRules
             )
         }
@@ -195,6 +195,10 @@ internal extension Configuration {
                 var rootDirectory: String = ""
                 if case let .existing(path) = vertix.filePath {
                     rootDirectory = path.bridge().deletingLastPathComponent
+                } else {
+                    throw ConfigurationError.generic(
+                        "Internal error: Processing promised config that doesn't exist yet"
+                    )
                 }
 
                 let referencedVertix = Vertix(string: reference, rootDirectory: rootDirectory)
@@ -244,7 +248,7 @@ internal extension Configuration {
         // MARK: Validating
         /// Validates the Graph and throws failures
         /// If successful, returns array of configuration dicts that represents the graph
-        private func validate() throws -> [[String: Any]] {
+        private func validate() throws -> [(configurationDict: [String: Any], rootDirectory: String)] {
             // Detect cycles via back-edge detection during DFS
             func walkDown(stack: [Vertix]) throws {
                 let neighbours = edges.filter { $0.parent == stack.last }.map { $0.child! }
@@ -292,19 +296,45 @@ internal extension Configuration {
                 verticesToMerge.append(vertix)
             }
 
-            return verticesToMerge.map { $0.configurationDict }
+            return try verticesToMerge.map {
+                var rootDirectory = ""
+                if case let .existing(path) = $0.filePath {
+                    rootDirectory = path.bridge().deletingLastPathComponent
+                } else {
+                    throw ConfigurationError.generic(
+                        "Internal error: Processing promised config that doesn't exist yet"
+                    )
+                }
+
+                return (
+                    configurationDict: $0.configurationDict,
+                    rootDirectory: rootDirectory
+                )
+            }
         }
 
         // MARK: Merging
         private func merged(
-            configurationDicts: [[String: Any]],
+            configurationData: [(configurationDict: [String: Any], rootDirectory: String)],
             enableAllRules: Bool
         ) throws -> Configuration {
-            let firstConfigurationDict = configurationDicts.first ?? [:] // Use empty dict if nothing else provided
-            let configurationDicts = Array(configurationDicts.dropFirst())
-            let firstConfiguration = try Configuration(dict: firstConfigurationDict, enableAllRules: enableAllRules)
-            return try configurationDicts.reduce(firstConfiguration) {
-                $0.merged(withChild: try Configuration(dict: $1, enableAllRules: enableAllRules))
+            // Split into first & remainder; use empty dict for first if the array is empty
+            let firstConfigurationData = configurationData.first ?? (configurationDict: [:], rootDirectory: "")
+            let configurationData = Array(configurationData.dropFirst())
+
+            // Build first configuration
+            var firstConfiguration = try Configuration(
+                dict: firstConfigurationData.configurationDict,
+                enableAllRules: enableAllRules
+            )
+            firstConfiguration.fileGraph = FileGraph(rootDirectory: firstConfigurationData.rootDirectory)
+
+            // Build succeeding configurations
+            return try configurationData.reduce(firstConfiguration) {
+                var childConfiguration = try Configuration(dict: $1.configurationDict, enableAllRules: enableAllRules)
+                childConfiguration.fileGraph = FileGraph(rootDirectory: $1.rootDirectory)
+
+                return $0.merged(withChild: childConfiguration, rootDirectory: rootDirectory)
             }
         }
     }

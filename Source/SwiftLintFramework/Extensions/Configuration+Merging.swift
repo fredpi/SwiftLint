@@ -2,18 +2,25 @@ import Foundation
 import SourceKittenFramework
 
 /// GENERAL NOTE ON MERGING: The child configuration is added on top of the parent configuration
-/// and is preferred if in doubt!
+/// and is preferred in case of conflicts!
 
 extension Configuration {
+    // MARK: - Subtypes
     // MARK: - Methods: Merging
-    internal func merged(withChild childConfiguration: Configuration) -> Configuration {
-        let mergedIncludedAndExcluded = self.mergedIncludedAndExcluded(with: childConfiguration)
+    internal func merged(
+        withChild childConfiguration: Configuration,
+        rootDirectory: String
+    ) -> Configuration {
+        let mergedIncludedAndExcluded = self.mergedIncludedAndExcluded(
+            with: childConfiguration,
+            rootDirectory: rootDirectory
+        )
 
         return Configuration(
             rulesWrapper: rulesWrapper.merged(with: childConfiguration.rulesWrapper),
-            fileGraph: childConfiguration.rootDirectory.map(FileGraph.init(rootDirectory:)),
-            includedPaths: mergedIncludedAndExcluded.included,
-            excludedPaths: mergedIncludedAndExcluded.excluded,
+            fileGraph: FileGraph(rootDirectory: rootDirectory),
+            includedPaths: mergedIncludedAndExcluded.includedPaths,
+            excludedPaths: mergedIncludedAndExcluded.excludedPaths,
             indentation: childConfiguration.indentation,
             warningThreshold: mergedWarningTreshold(with: childConfiguration),
             reporter: reporter,
@@ -23,51 +30,34 @@ extension Configuration {
     }
 
     private func mergedIncludedAndExcluded(
-        with childConfiguration: Configuration
-    ) -> (included: [String], excluded: [String]) {
-        let parentRootPathComps = configurationPath?.components(separatedBy: "/").dropLast()
-            ?? rootDirectory?.components(separatedBy: "/")
-            ?? []
-        var childRootPathComps = childConfiguration.configurationPath?.components(separatedBy: "/").dropLast()
-            ?? childConfiguration.rootDirectory?.components(separatedBy: "/")
-            ?? []
+        with childConfiguration: Configuration,
+        rootDirectory: String
+    ) -> (includedPaths: [String], excludedPaths: [String]) {
+        // Render paths relative to their respective root paths → makes them comparable
+        let childConfigIncluded = childConfiguration.includedPaths.map {
+            $0.bridge().absolutePathRepresentation(rootDirectory: childConfiguration.rootDirectory ?? "")
+        }
 
-        let parentConfigIncluded: [String]
-        let parentConfigExcluded: [String]
-        let childConfigIncluded: [String] = childConfiguration.includedPaths
-        let childConfigExcluded: [String] = childConfiguration.excludedPaths
+        let childConfigExcluded = childConfiguration.excludedPaths.map {
+            $0.bridge().absolutePathRepresentation(rootDirectory: childConfiguration.rootDirectory ?? "")
+        }
 
-        if parentRootPathComps == childRootPathComps {
-            // If we are on the on same level, things are quite easy
-            parentConfigIncluded = includedPaths
-            parentConfigExcluded = excludedPaths
-        } else {
-            // Safeguard whether child is actually child (should always be the case)
-            guard childRootPathComps.starts(with: parentRootPathComps) else {
-                return (included: childConfigIncluded, excluded: childConfigExcluded)
-            }
+        let parentConfigIncluded = includedPaths.map {
+            $0.bridge().absolutePathRepresentation(rootDirectory: self.rootDirectory ?? "")
+        }
 
-            childRootPathComps.removeFirst(parentRootPathComps.count)
-
-            // Get parent paths relative to child root directory; filter out irrelevant paths
-            func process(parentPaths: [String]) -> [String] {
-                return parentPaths.filter {
-                    $0.components(separatedBy: "/").starts(with: childRootPathComps)
-                }.map {
-                    var pathComponents = $0.components(separatedBy: "/")
-                    pathComponents.removeFirst(childRootPathComps.count)
-                    return pathComponents.joined(separator: "/")
-                }
-            }
-
-            parentConfigIncluded = process(parentPaths: includedPaths)
-            parentConfigExcluded = process(parentPaths: excludedPaths)
+        let parentConfigExcluded = excludedPaths.map {
+            $0.bridge().absolutePathRepresentation(rootDirectory: self.rootDirectory ?? "")
         }
 
         // Prefer child configuration over parent configuration
+        let includedPaths = parentConfigIncluded.filter { !childConfigExcluded.contains($0) } + childConfigIncluded
+        let excludedPaths = parentConfigExcluded.filter { !childConfigIncluded.contains($0) } + childConfigExcluded
+
+        // Return paths relative to the provided root directory
         return (
-            included: parentConfigIncluded.filter { !childConfigExcluded.contains($0) } + childConfigIncluded,
-            excluded: parentConfigExcluded.filter { !childConfigIncluded.contains($0) } + childConfigExcluded
+            includedPaths: includedPaths.map { $0.path(relativeTo: rootDirectory) },
+            excludedPaths: excludedPaths.map { $0.path(relativeTo: rootDirectory) }
         )
     }
 
@@ -97,14 +87,12 @@ extension Configuration {
     }
 
     private func configuration(forDirectory directory: String) -> Configuration {
-        // Allow nested configuration processing even if config wasn't created via files (-> rootDir present)
-        let configurationRootDirectory = configurationPath?.bridge().deletingLastPathComponent
-            ?? FileManager.default.currentDirectoryPath.bridge().standardizingPath
+        // If the configuration was explicitly specified via the `--config` param, don't use nested configs
+        guard !basedOnCustomConfigurationFiles else { return self }
 
         let directoryNSString = directory.bridge()
-        let fullDirectory = directoryNSString.absolutePathRepresentation()
-        let configurationSearchPath = directoryNSString.appendingPathComponent(Configuration.fileName)
-        let cacheIdentifier = "nestedPath" + configurationRootDirectory + configurationSearchPath
+        let configurationSearchPath = directoryNSString.appendingPathComponent(Configuration.defaultFileName)
+        let cacheIdentifier = "nestedPath" + (rootDirectory ?? "") + configurationSearchPath
 
         if Configuration.getIsNestedConfigurationSelf(forIdentifier: cacheIdentifier) == true {
             return self
@@ -113,7 +101,7 @@ extension Configuration {
         } else {
             var config: Configuration
 
-            if directory == configurationRootDirectory {
+            if directory == rootDirectory {
                 // Use self if at level self
                 config = self
             } else if
@@ -124,15 +112,12 @@ extension Configuration {
                 // iff that nested config has not already been used to build the main config
 
                 // Ignore parent_config / child_config specifications of nested configs
-                config = merged(
-                    withChild: Configuration(
-                        configurationFiles: [configurationSearchPath],
-                        rootPath: fullDirectory,
-                        optional: false,
-                        quiet: true,
-                        ignoreParentAndChildConfigs: true
-                    )
+                var childConfiguration = Configuration(
+                    configurationFiles: [configurationSearchPath],
+                    ignoreParentAndChildConfigs: true
                 )
+                childConfiguration.fileGraph = FileGraph(rootDirectory: directory)
+                config = merged(withChild: childConfiguration, rootDirectory: rootDirectory ?? "")
 
                 // Cache merged result to circumvent heavy merge recomputations
                 config.setCached(forIdentifier: cacheIdentifier)

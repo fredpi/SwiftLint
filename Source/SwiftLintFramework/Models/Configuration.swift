@@ -7,7 +7,7 @@ public struct Configuration {
     /// The default Configuration resulting from an empty configuration file.
     public static var `default`: Configuration {
         // This is realized via a getter to account for differences of the current working directory
-        return Configuration()
+        Configuration()
     }
 
     /// The default file name to look for user-defined configurations.
@@ -15,16 +15,12 @@ public struct Configuration {
 
     // MARK: Public Instance
     /// All rules enabled in this configuration
-    public var rules: [Rule] {
-        return rulesWrapper.resultingRules
-    }
+    public var rules: [Rule] { rulesWrapper.resultingRules }
 
     /// The root directory is the directory that included & excluded paths relate to.
     /// By default, the root directory is the current working directory,
     /// but in some merging algorithms it is used differently.
-    public var rootDirectory: String {
-        return fileGraph.rootDirectory
-    }
+    public var rootDirectory: String { fileGraph.rootDirectory }
 
     /// The paths that should be included when linting
     public let includedPaths: [String]
@@ -54,12 +50,12 @@ public struct Configuration {
 
     // MARK: Public Computed
     /// The rules mode used for this configuration.
-    public var rulesMode: RulesMode { return rulesWrapper.mode }
+    public var rulesMode: RulesMode { rulesWrapper.mode }
 
     // MARK: Internal Instance
-    internal var computedCacheDescription: String?
     internal var fileGraph: FileGraph
     internal private(set) var rulesWrapper: RulesWrapper
+    internal var computedCacheDescription: String?
 
     // MARK: - Initializers: Internal
     /// Initialize with all properties

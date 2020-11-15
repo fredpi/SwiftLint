@@ -502,7 +502,7 @@ disabled_rules:
 - force_cast
 ```
 
-Project-Specific Configuration :
+Project-Specific Configuration:
 
 ```yaml
 opt_in_rules:
@@ -536,7 +536,8 @@ parent_config: Base/.swiftlint_base.yml
 ```
 
 When merging parent and child configs, `included` and `excluded` configurations
-are processed carefully to account for differences in root paths.
+are processed carefully to account for differences in the directory location
+of the containing configuration files.
 
 ### Child / Parent Configs (Remote)
 
@@ -574,7 +575,7 @@ A simple example including just two configuration files looks like this:
 
 ### Nested Configurations
 
-In addition to a main configuration that is defined by one file or a hierarchy of files,
+In addition to a main configuration (the `.swiftlint.yml` file in the root folder),
 you can put other configuration files named `.swiftlint.yml` into the directory structure
 that then get merged as a child config, but only with an effect for those files
 that are within the same directory as the config or in a deeper directory where
@@ -586,6 +587,11 @@ that may be applied in addition to the main configuration.
 used to build the main configuration already (e. g. by having been referenced via something
 like `child_config: Folder/.swiftlint.yml`). Also, `parent_config` / `child_config`
 specifications of nested configurations are getting ignored because there's no sense to that.
+
+If one (or more) SwiftLint file(s) are explicitly specified via the `--config` parameter,
+that configuration will be treated as an override, no matter whether there exist
+other `.swiftlint.yml` files somewhere within the directory. **So if you want to use
+use nested configurations, you can't use the `-- config` parameter.**
 
 ## License
 

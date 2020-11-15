@@ -55,9 +55,11 @@
   within a function even if breaking the maximum `type_level`.  
   [Skoti](https://github.com/Skoti)
   [#1151](https://github.com/realm/SwiftLint/issues/1151)
+  
 * Add option to specify a `child_config` / `parent_config` file
 (local or remote) in any SwiftLint configuration file.
-Allow passing multiple configuration files via the command line.  
+Allow passing multiple configuration files via the command line.
+Improve documentation for multiple configuration files.  
 [Frederick Pietschmann](https://github.com/fredpi)
 [#1352](https://github.com/realm/SwiftLint/issues/1352)
 

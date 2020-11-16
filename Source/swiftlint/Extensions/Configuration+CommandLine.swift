@@ -265,10 +265,6 @@ extension Configuration {
     }
 }
 
-private func configurationSpecified() -> Bool {
-    return CommandLine.arguments.contains("--config")
-}
-
 private struct DuplicateCollector {
     var all = Set<String>()
     var duplicates = Set<String>()

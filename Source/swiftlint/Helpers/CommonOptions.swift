@@ -1,5 +1,4 @@
 import Commandant
-import SwiftLintFramework
 
 func pathOption(action: String) -> Option<String> {
     return Option(key: "path",

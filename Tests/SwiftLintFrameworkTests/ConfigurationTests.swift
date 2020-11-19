@@ -229,7 +229,7 @@ class ConfigurationTests: XCTestCase, ProjectMock {
         let expectedFilenames = [
             "DirectoryLevel1.swift",
             "Level0.swift", "Level1.swift", "Level2.swift", "Level3.swift",
-            "Valid1.swift", "Valid2.swift", "Main.swift", "Sub.swift"
+            "Main.swift", "Sub.swift"
         ]
 
         XCTAssertEqual(Set(expectedFilenames), Set(filenames))

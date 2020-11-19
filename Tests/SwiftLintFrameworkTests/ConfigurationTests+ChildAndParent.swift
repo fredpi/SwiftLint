@@ -5,10 +5,10 @@ import XCTest
 extension ConfigurationTests {
     // MARK: - Methods: Tests
     func testValidChildConfig() {
-        for path in [projectMockPathChildConfigValid1, projectMockPathChildConfigValid2] {
+        for path in [projectMockPathChildConfigTest1, projectMockPathChildConfigTest2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
-            assertEqual(
+            assertEqualExceptForFileGraph(
                 Configuration(configurationFiles: ["child_config_main.yml"]),
                 Configuration(configurationFiles: ["child_config_expected.yml"])
             )
@@ -16,10 +16,10 @@ extension ConfigurationTests {
     }
 
     func testValidParentConfig() {
-        for path in [projectMockPathParentConfigValid1, projectMockPathParentConfigValid2] {
+        for path in [projectMockPathParentConfigTest1, projectMockPathParentConfigTest2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
-            assertEqual(
+            assertEqualExceptForFileGraph(
                 Configuration(configurationFiles: ["parent_config_main.yml"]),
                 Configuration(configurationFiles: ["parent_config_expected.yml"])
             )
@@ -27,10 +27,10 @@ extension ConfigurationTests {
     }
 
     func testCommandLineChildConfigs() {
-        for path in [projectMockPathChildConfigValid1, projectMockPathChildConfigValid2] {
+        for path in [projectMockPathChildConfigTest1, projectMockPathChildConfigTest2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
-            assertEqual(
+            assertEqualExceptForFileGraph(
                 Configuration(
                     configurationFiles: ["child_config_main.yml", "child_config_child1.yml", "child_config_child2.yml"]
                 ),
@@ -40,7 +40,9 @@ extension ConfigurationTests {
     }
 
     // MARK: Helpers
-    private func assertEqual(_ configuration1: Configuration, _ configuration2: Configuration) {
+    /// This helper function checks whether two configurations are equal except for their file graph.
+    /// This is needed to test a child/parent merged config against an expected config.
+    func assertEqualExceptForFileGraph(_ configuration1: Configuration, _ configuration2: Configuration) {
         XCTAssertEqual(
             configuration1.rulesWrapper.disabledRuleIdentifiers,
             configuration2.rulesWrapper.disabledRuleIdentifiers

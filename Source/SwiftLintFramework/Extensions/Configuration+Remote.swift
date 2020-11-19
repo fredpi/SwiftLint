@@ -15,6 +15,13 @@ internal extension Configuration.FileGraph.FilePath {
     /// Use this to get the path to the cache directory for the current cache format
     private static let versionedRemoteCachePath: String = "\(remoteCachePath)/\(remoteCacheVersionNumber)"
 
+    /// The path to the gitignore file.
+    private static let gitignorePath: String = ".gitignore"
+
+    /// This dictionary has URLs as its keys and contents of those URLs as its values
+    /// In production mode, this should be empty. For tests, it may be filled.
+    static var mockedNetworkResults: [String: String] = [:]
+
     // MARK: - Methods: Resolving
     mutating func resolve(
         remoteConfigTimeout: Double,
@@ -44,50 +51,57 @@ internal extension Configuration.FileGraph.FilePath {
         // Get cache path
         let cachedFilePath = getCachedFilePath(urlString: urlString, rootDirectory: rootDirectory)
 
-        // Handle missing network
-        guard Reachability.connectivityStatus != .disconnected else {
-            return try handleMissingNetwork(urlString: urlString, cachedFilePath: cachedFilePath)
-        }
+        let configString: String
+        if let mockedValue = Configuration.FileGraph.FilePath.mockedNetworkResults[urlString] {
+            configString = mockedValue
+        } else {
+            // Handle missing network
+            guard Reachability.connectivityStatus != .disconnected else {
+                return try handleMissingNetwork(urlString: urlString, cachedFilePath: cachedFilePath)
+            }
 
-        // Handle wrong url fromat
-        guard let url = URL(string: urlString) else {
-            throw ConfigurationError.generic("Invalid configuration entry: \"\(urlString)\" isn't a valid url.")
-        }
+            // Handle wrong url format
+            guard let url = URL(string: urlString) else {
+                throw ConfigurationError.generic("Invalid configuration entry: \"\(urlString)\" isn't a valid url.")
+            }
 
-        // Load from url
-        var taskResult: (Data?, URLResponse?, Error?)
-        var taskDone: Bool = false
+            // Load from url
+            var taskResult: (Data?, URLResponse?, Error?)
+            var taskDone: Bool = false
 
-        // `.ephemeral` disables caching (which we don't want to be managed by the system)
-        let task = URLSession(configuration: .ephemeral).dataTask(with: url) { data, response, error in
-            taskResult = (data, response, error)
-            taskDone = true
-        }
+            // `.ephemeral` disables caching (which we don't want to be managed by the system)
+            let task = URLSession(configuration: .ephemeral).dataTask(with: url) { data, response, error in
+                taskResult = (data, response, error)
+                taskDone = true
+            }
 
-        task.resume()
+            task.resume()
 
-        let timeout = cachedFilePath == nil ? remoteConfigTimeout : remoteConfigTimeoutIfCached
-        let startDate = Date()
+            let timeout = cachedFilePath == nil ? remoteConfigTimeout : remoteConfigTimeoutIfCached
+            let startDate = Date()
 
-        // Block main thread until timeout is reached / task is done
-        while true {
-            if taskDone { break }
-            if Date().timeIntervalSince(startDate) > timeout { task.cancel(); break }
-            usleep(50_000) // Sleep for 50 ms
-        }
+            // Block main thread until timeout is reached / task is done
+            while true {
+                if taskDone { break }
+                if Date().timeIntervalSince(startDate) > timeout { task.cancel(); break }
+                usleep(50_000) // Sleep for 50 ms
+            }
 
-        // Handle wrong data
-        guard
-            taskResult.2 == nil, // No error
-            (taskResult.1 as? HTTPURLResponse)?.statusCode == 200,
-            let configString = (taskResult.0.flatMap { String(data: $0, encoding: .utf8) })
-        else {
-            return try handleWrongData(
-                urlString: urlString,
-                cachedFilePath: cachedFilePath,
-                taskDone: taskDone,
-                timeout: timeout
-            )
+            // Handle wrong data
+            guard
+                taskResult.2 == nil, // No error
+                (taskResult.1 as? HTTPURLResponse)?.statusCode == 200,
+                let configStr = (taskResult.0.flatMap { String(data: $0, encoding: .utf8) })
+            else {
+                return try handleWrongData(
+                    urlString: urlString,
+                    cachedFilePath: cachedFilePath,
+                    taskDone: taskDone,
+                    timeout: timeout
+                )
+            }
+
+            configString = configStr
         }
 
         // Handle file write failure
@@ -182,7 +196,7 @@ internal extension Configuration.FileGraph.FilePath {
         formatter.dateFormat = "dd/MM/yyyy 'at' HH:mm:ss"
         let configString =
             "#\n"
-            + "# Automatically downloaded from \"\(urlString)\" by SwiftLint on \(formatter.string(from: Date())).\n"
+            + "# Automatically downloaded from \(urlString) by SwiftLint on \(formatter.string(from: Date())).\n"
             + "#\n"
             + configString
 
@@ -199,6 +213,15 @@ internal extension Configuration.FileGraph.FilePath {
         let adjustedUrlString = urlString.replacingOccurrences(of: "/", with: "_")
         let path = Configuration.FileGraph.FilePath.versionedRemoteCachePath + "/\(adjustedUrlString).yml"
         return path.bridge().absolutePathRepresentation(rootDirectory: rootDirectory)
+    }
+
+    /// As a safeguard, this method only works when there are mocked network results.
+    /// It deletes both the .gitignore and the remote cache that may have got created by a test.
+    static func deleteGitignoreAndSwiftlintCache() {
+        guard !mockedNetworkResults.isEmpty else { return }
+
+        try? FileManager.default.removeItem(atPath: gitignorePath)
+        try? FileManager.default.removeItem(atPath: remoteCachePath)
     }
 
     private func maintainRemoteConfigCache(rootDirectory: String) throws {
@@ -220,23 +243,26 @@ internal extension Configuration.FileGraph.FilePath {
         }
 
         // Add gitignore entry if needed
-        let gitignorePath = ".gitignore"
         let requiredGitignoreAppendix = "\(Configuration.FileGraph.FilePath.remoteCachePath)"
         let newGitignoreAppendix = "# SwiftLint Remote Config Cache\n\(requiredGitignoreAppendix)"
 
-        if !FileManager.default.fileExists(atPath: gitignorePath) {
+        if !FileManager.default.fileExists(atPath: Configuration.FileGraph.FilePath.gitignorePath) {
             guard FileManager.default.createFile(
-                atPath: gitignorePath,
+                atPath: Configuration.FileGraph.FilePath.gitignorePath,
                 contents: Data(newGitignoreAppendix.utf8),
                 attributes: [:]
             ) else {
                 throw ConfigurationError.generic("Issue maintaining remote config cache.")
             }
         } else {
-            var contents = try String(contentsOfFile: gitignorePath, encoding: .utf8)
+            var contents = try String(contentsOfFile: Configuration.FileGraph.FilePath.gitignorePath, encoding: .utf8)
             if !contents.contains(requiredGitignoreAppendix) {
                 contents += "\n\n\(newGitignoreAppendix)"
-                try contents.write(toFile: gitignorePath, atomically: true, encoding: .utf8)
+                try contents.write(
+                    toFile: Configuration.FileGraph.FilePath.gitignorePath,
+                    atomically: true,
+                    encoding: .utf8
+                )
             }
         }
     }

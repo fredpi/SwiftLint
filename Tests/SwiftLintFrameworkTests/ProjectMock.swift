@@ -30,20 +30,28 @@ extension ProjectMock {
         projectMockNestedPath.stringByAppendingPathComponent("Sub")
     }
 
-    var projectMockPathChildConfigValid1: String {
-        projectMockPathLevel0.stringByAppendingPathComponent("ChildConfig/Valid1/Main")
+    var projectMockPathChildConfigTest1: String {
+        projectMockPathLevel0.stringByAppendingPathComponent("ChildConfig/Test1/Main")
     }
 
-    var projectMockPathChildConfigValid2: String {
-        projectMockPathLevel0.stringByAppendingPathComponent("ChildConfig/Valid2")
+    var projectMockPathChildConfigTest2: String {
+        projectMockPathLevel0.stringByAppendingPathComponent("ChildConfig/Test2")
     }
 
-    var projectMockPathParentConfigValid1: String {
-        projectMockPathLevel0.stringByAppendingPathComponent("ParentConfig/Valid1")
+    var projectMockPathParentConfigTest1: String {
+        projectMockPathLevel0.stringByAppendingPathComponent("ParentConfig/Test1")
     }
 
-    var projectMockPathParentConfigValid2: String {
-        projectMockPathLevel0.stringByAppendingPathComponent("ParentConfig/Valid2")
+    var projectMockPathParentConfigTest2: String {
+        projectMockPathLevel0.stringByAppendingPathComponent("ParentConfig/Test2")
+    }
+
+    var projectMockPathRemoteChildConfig: String {
+        projectMockPathLevel0.stringByAppendingPathComponent("RemoteChildConfig")
+    }
+
+    var projectMockPathRemoteParentConfig: String {
+        projectMockPathLevel0.stringByAppendingPathComponent("RemoteParentConfig")
     }
 
     var projectMockEmptyFolder: String {

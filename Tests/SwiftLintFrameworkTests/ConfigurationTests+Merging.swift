@@ -10,19 +10,19 @@ private extension Configuration {
 extension ConfigurationTests {
     // MARK: - Rules Merging
     func testMerge() {
-        let config0Merge2 = projectMockConfig0.merged(withChild: projectMockConfig2, rootDirectory: "")
+        let config0Merge2 = Mock.Config._0.merged(withChild: Mock.Config._2, rootDirectory: "")
 
-        XCTAssertFalse(projectMockConfig0.contains(rule: ForceCastRule.self))
-        XCTAssertTrue(projectMockConfig2.contains(rule: ForceCastRule.self))
+        XCTAssertFalse(Mock.Config._0.contains(rule: ForceCastRule.self))
+        XCTAssertTrue(Mock.Config._2.contains(rule: ForceCastRule.self))
         XCTAssertFalse(config0Merge2.contains(rule: ForceCastRule.self))
 
-        XCTAssertTrue(projectMockConfig0.contains(rule: TodoRule.self))
-        XCTAssertTrue(projectMockConfig2.contains(rule: TodoRule.self))
+        XCTAssertTrue(Mock.Config._0.contains(rule: TodoRule.self))
+        XCTAssertTrue(Mock.Config._2.contains(rule: TodoRule.self))
         XCTAssertTrue(config0Merge2.contains(rule: TodoRule.self))
 
-        XCTAssertFalse(projectMockConfig3.contains(rule: TodoRule.self))
+        XCTAssertFalse(Mock.Config._3.contains(rule: TodoRule.self))
         XCTAssertFalse(
-            config0Merge2.merged(withChild: projectMockConfig3, rootDirectory: "").contains(rule: TodoRule.self)
+            config0Merge2.merged(withChild: Mock.Config._3, rootDirectory: "").contains(rule: TodoRule.self)
         )
     }
 
@@ -70,8 +70,8 @@ extension ConfigurationTests {
     }
 
     func testCustomRulesMerging() {
-        let mergedConfiguration = projectMockConfig0CustomRules.merged(
-            withChild: projectMockConfig2CustomRules,
+        let mergedConfiguration = Mock.Config._0CustomRules.merged(
+            withChild: Mock.Config._2CustomRules,
             rootDirectory: ""
         )
         guard let mergedCustomRules = mergedConfiguration.rules.first(where: { $0 is CustomRules }) as? CustomRules
@@ -87,8 +87,8 @@ extension ConfigurationTests {
     }
 
     func testMergingAllowsDisablingParentsCustomRules() {
-        let mergedConfiguration = projectMockConfig0CustomRules.merged(
-            withChild: projectMockConfig2CustomRulesDisabled,
+        let mergedConfiguration = Mock.Config._0CustomRules.merged(
+            withChild: Mock.Config._2CustomRulesDisabled,
             rootDirectory: ""
         )
         guard let mergedCustomRules = mergedConfiguration.rules.first(where: { $0 is CustomRules }) as? CustomRules
@@ -105,41 +105,41 @@ extension ConfigurationTests {
 
     // MARK: - Nested Configurations
     func testLevel0() {
-        XCTAssertEqual(projectMockConfig0.configuration(for: SwiftLintFile(path: projectMockSwift0)!),
-                       projectMockConfig0)
+        XCTAssertEqual(Mock.Config._0.configuration(for: SwiftLintFile(path: Mock.Swift._0)!),
+                       Mock.Config._0)
     }
 
     func testLevel1() {
-        XCTAssertEqual(projectMockConfig0.configuration(for: SwiftLintFile(path: projectMockSwift1)!),
-                       projectMockConfig0)
+        XCTAssertEqual(Mock.Config._0.configuration(for: SwiftLintFile(path: Mock.Swift._1)!),
+                       Mock.Config._0)
     }
 
     func testLevel2() {
-        let config = projectMockConfig0.configuration(for: SwiftLintFile(path: projectMockSwift2)!)
-        var config2 = projectMockConfig2
-        config2.fileGraph = Configuration.FileGraph(rootDirectory: projectMockPathLevel2)
+        let config = Mock.Config._0.configuration(for: SwiftLintFile(path: Mock.Swift._2)!)
+        var config2 = Mock.Config._2
+        config2.fileGraph = Configuration.FileGraph(rootDirectory: Mock.Dir.level2)
 
         XCTAssertEqual(
             config,
-            projectMockConfig0.merged(withChild: config2, rootDirectory: config.rootDirectory)
+            Mock.Config._0.merged(withChild: config2, rootDirectory: config.rootDirectory)
         )
     }
 
     func testLevel3() {
-        let config = projectMockConfig0.configuration(for: SwiftLintFile(path: projectMockSwift3)!)
-        var config3 = projectMockConfig3
-        config3.fileGraph = Configuration.FileGraph(rootDirectory: projectMockPathLevel3)
+        let config = Mock.Config._0.configuration(for: SwiftLintFile(path: Mock.Swift._3)!)
+        var config3 = Mock.Config._3
+        config3.fileGraph = Configuration.FileGraph(rootDirectory: Mock.Dir.level3)
 
         XCTAssertEqual(
             config,
-            projectMockConfig0.merged(withChild: config3, rootDirectory: config.rootDirectory)
+            Mock.Config._0.merged(withChild: config3, rootDirectory: config.rootDirectory)
         )
     }
 
     func testNestedConfigurationForOnePathPassedIn() {
-        let config = Configuration(configurationFiles: [projectMockYAML0])
+        let config = Configuration(configurationFiles: [Mock.Yml._0])
         XCTAssertEqual(
-            config.configuration(for: SwiftLintFile(path: projectMockSwift3)!),
+            config.configuration(for: SwiftLintFile(path: Mock.Swift._3)!),
             config
         )
     }
@@ -148,8 +148,8 @@ extension ConfigurationTests {
         // If a configuration has already been used to build the main config,
         // it should not again be regarded as a nested config
         XCTAssertEqual(
-            projectMockNestedConfig.configuration(for: SwiftLintFile(path: projectMockNestedSubSwift)!),
-            projectMockNestedConfig
+            Mock.Config.nested.configuration(for: SwiftLintFile(path: Mock.Swift.nestedSub)!),
+            Mock.Config.nested
         )
     }
 }

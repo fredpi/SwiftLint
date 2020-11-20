@@ -5,14 +5,14 @@ import XCTest
 
 private let optInRules = primaryRuleList.list.filter({ $0.1.init() is OptInRule }).map({ $0.0 })
 
-class ConfigurationTests: XCTestCase, ProjectMock {
+class ConfigurationTests: XCTestCase {
     // MARK: Setup & Teardown
     private var previousWorkingDir: String!
 
     override func setUp() {
         super.setUp()
         previousWorkingDir = FileManager.default.currentDirectoryPath
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.level0)
     }
 
     override func tearDown() {
@@ -30,7 +30,7 @@ class ConfigurationTests: XCTestCase, ProjectMock {
 
     func testNoConfiguration() {
         // Change to a folder where there is no `.swiftlint.yml`
-        FileManager.default.changeCurrentDirectoryPath(projectMockEmptyFolder)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.emptyFolder)
 
         // Test whether the default configuration is used if there is no `.swiftlint.yml` or other config file
         XCTAssertEqual(Configuration(configurationFiles: []), Configuration.default)
@@ -51,7 +51,7 @@ class ConfigurationTests: XCTestCase, ProjectMock {
     }
 
     func testInitWithRelativePathAndRootPath() {
-        let expectedConfig = projectMockConfig0
+        let expectedConfig = Mock.Config._0
 
         let config = Configuration(configurationFiles: [".swiftlint.yml"])
 
@@ -224,7 +224,7 @@ class ConfigurationTests: XCTestCase, ProjectMock {
     }
 
     func testLintablePaths() {
-        let paths = Configuration.default.lintablePaths(inPath: projectMockPathLevel0, forceExclude: false)
+        let paths = Configuration.default.lintablePaths(inPath: Mock.Dir.level0, forceExclude: false)
         let filenames = paths.map { $0.bridge().lastPathComponent }.sorted()
         let expectedFilenames = [
             "DirectoryLevel1.swift",
@@ -237,8 +237,8 @@ class ConfigurationTests: XCTestCase, ProjectMock {
 
     func testGlobExcludePaths() {
         let configuration = Configuration(
-            includedPaths: [projectMockPathLevel3],
-            excludedPaths: [projectMockPathLevel3.stringByAppendingPathComponent("*.swift")]
+            includedPaths: [Mock.Dir.level3],
+            excludedPaths: [Mock.Dir.level3.stringByAppendingPathComponent("*.swift")]
         )
 
         XCTAssertEqual(configuration.lintablePaths(inPath: "", forceExclude: false), [])
@@ -247,32 +247,32 @@ class ConfigurationTests: XCTestCase, ProjectMock {
     // MARK: - Testing Configuration Equality
 
     func testIsEqualTo() {
-        XCTAssertEqual(projectMockConfig0, projectMockConfig0)
+        XCTAssertEqual(Mock.Config._0, Mock.Config._0)
     }
 
     func testIsNotEqualTo() {
-        XCTAssertNotEqual(projectMockConfig0, projectMockConfig2)
+        XCTAssertNotEqual(Mock.Config._0, Mock.Config._2)
     }
 
     // MARK: - Testing Custom Configuration File
 
     func testCustomConfiguration() {
-        let file = SwiftLintFile(path: projectMockSwift0)!
-        XCTAssertNotEqual(projectMockConfig0.configuration(for: file),
-                          projectMockConfig0CustomPath.configuration(for: file))
+        let file = SwiftLintFile(path: Mock.Swift._0)!
+        XCTAssertNotEqual(Mock.Config._0.configuration(for: file),
+                          Mock.Config._0CustomPath.configuration(for: file))
     }
 
     func testConfigurationWithSwiftFileAsRoot() {
-        let configuration = Configuration(configurationFiles: [projectMockYAML0])
+        let configuration = Configuration(configurationFiles: [Mock.Yml._0])
 
-        let file = SwiftLintFile(path: projectMockSwift0)!
+        let file = SwiftLintFile(path: Mock.Swift._0)!
         XCTAssertEqual(configuration.configuration(for: file), configuration)
     }
 
     func testConfigurationWithSwiftFileAsRootAndCustomConfiguration() {
-        let configuration = Configuration(configurationFiles: [projectMockYAML0CustomPath])
+        let configuration = Configuration(configurationFiles: [Mock.Yml._0CustomPath])
 
-        let file = SwiftLintFile(path: projectMockSwift0)!
+        let file = SwiftLintFile(path: Mock.Swift._0)!
         XCTAssertEqual(configuration.configuration(for: file), configuration)
     }
 
@@ -323,11 +323,11 @@ class ConfigurationTests: XCTestCase, ProjectMock {
 // MARK: - ExcludeByPrefix option tests
 extension ConfigurationTests {
     func testExcludeByPrefixExcludedPaths() {
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.level0)
         let configuration = Configuration(includedPaths: ["Level1"],
                                           excludedPaths: ["Level1/Level1.swift",
                                                           "Level1/Level2/Level3"])
-        let paths = configuration.lintablePaths(inPath: projectMockPathLevel0,
+        let paths = configuration.lintablePaths(inPath: Mock.Dir.level0,
                                                 forceExclude: false,
                                                 excludeByPrefix: true)
         let filenames = paths.map { $0.bridge().lastPathComponent }
@@ -335,7 +335,7 @@ extension ConfigurationTests {
     }
 
     func testExcludeByPrefixForceExcludesFile() {
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.level0)
         let configuration = Configuration(excludedPaths: ["Level1/Level2/Level3/Level3.swift"])
         let paths = configuration.lintablePaths(inPath: "Level1/Level2/Level3/Level3.swift",
                                                 forceExclude: true,
@@ -344,7 +344,7 @@ extension ConfigurationTests {
     }
 
     func testExcludeByPrefixForceExcludesFileNotPresentInExcluded() {
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.level0)
         let configuration = Configuration(includedPaths: ["Level1"],
                                           excludedPaths: ["Level1/Level1.swift"])
         let paths = configuration.lintablePaths(inPath: "Level1",
@@ -355,7 +355,7 @@ extension ConfigurationTests {
     }
 
     func testExcludeByPrefixForceExcludesDirectory() {
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.level0)
         let configuration = Configuration(
             excludedPaths: [
                 "Level1/Level2", "Directory.swift", "ChildConfig", "ParentConfig", "NestedConfig"
@@ -369,7 +369,7 @@ extension ConfigurationTests {
     }
 
     func testExcludeByPrefixForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre() {
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.level0)
         let configuration = Configuration(
             excludedPaths: [
                 "Level1", "Directory.swift/DirectoryLevel1.swift", "ChildConfig", "ParentConfig", "NestedConfig"
@@ -383,7 +383,7 @@ extension ConfigurationTests {
     }
 
     func testExcludeByPrefixGlobExcludePaths() {
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathLevel0)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.level0)
         let configuration = Configuration(
             includedPaths: ["Level1"],
             excludedPaths: ["Level1/**/*.swift", "Level1/**/**/*.swift"])

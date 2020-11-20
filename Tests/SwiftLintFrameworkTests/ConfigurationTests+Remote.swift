@@ -4,7 +4,7 @@ import XCTest
 
 extension ConfigurationTests {
     func testValidRemoteChildConfig() {
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathRemoteChildConfig)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.remoteChildConfig)
 
         assertEqualExceptForFileGraph(
             Configuration(
@@ -23,7 +23,7 @@ extension ConfigurationTests {
     }
 
     func testValidRemoteParentConfig() {
-        FileManager.default.changeCurrentDirectoryPath(projectMockPathRemoteParentConfig)
+        FileManager.default.changeCurrentDirectoryPath(Mock.Dir.remoteParentConfig)
 
         assertEqualExceptForFileGraph(
             Configuration(

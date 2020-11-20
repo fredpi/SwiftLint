@@ -5,7 +5,7 @@ import XCTest
 extension ConfigurationTests {
     // MARK: - Methods: Tests
     func testValidChildConfig() {
-        for path in [projectMockPathChildConfigTest1, projectMockPathChildConfigTest2] {
+        for path in [Mock.Dir.childConfigTest1, Mock.Dir.childConfigTest2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
             assertEqualExceptForFileGraph(
@@ -16,7 +16,7 @@ extension ConfigurationTests {
     }
 
     func testValidParentConfig() {
-        for path in [projectMockPathParentConfigTest1, projectMockPathParentConfigTest2] {
+        for path in [Mock.Dir.parentConfigTest1, Mock.Dir.parentConfigTest2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
             assertEqualExceptForFileGraph(
@@ -27,7 +27,7 @@ extension ConfigurationTests {
     }
 
     func testCommandLineChildConfigs() {
-        for path in [projectMockPathChildConfigTest1, projectMockPathChildConfigTest2] {
+        for path in [Mock.Dir.childConfigTest1, Mock.Dir.childConfigTest2] {
             FileManager.default.changeCurrentDirectoryPath(path)
 
             assertEqualExceptForFileGraph(

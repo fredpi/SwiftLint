@@ -163,17 +163,19 @@ public struct Configuration {
     /// - parameter configurationFiles:         The path on disk to one or multiple configuration files. If this array
     ///                                         is empty, the default `.swiftlint.yml` file will be used.
     /// - parameter enableAllRules:             Enable all available rules.
-    /// - parameter cachePath:                  The location of the persisted cache to
-    ///                                         use whith this configuration.
+    /// - parameter cachePath:                  The location of the persisted cache to use whith this configuration.
     /// - parameter ignoreParentAndChildConfigs:If `true`, child and parent config references will be ignored.
     /// - parameter mockedNetworkResults:       For testing purposes only. Instead of loading the specified urls,
     ///                                         the mocked value will be used. Example: ["http://mock.com": "content"]
+    /// - parameter useDefaultConfigOnFailure:  If this value is specified, it will override the normal behavior.
+    ///                                         This is only intended for tests checking whether invalid configs fail.
     public init(
         configurationFiles: [String], // No default value here to avoid ambiguous Configuration() initializer
         enableAllRules: Bool = false,
         cachePath: String? = nil,
         ignoreParentAndChildConfigs: Bool = false,
-        mockedNetworkResults: [String: String] = [:]
+        mockedNetworkResults: [String: String] = [:],
+        useDefaultConfigOnFailure: Bool? = nil
     ) {
         // Handle mocked network results if needed
         Configuration.FileGraph.FilePath.mockedNetworkResults = mockedNetworkResults
@@ -223,14 +225,14 @@ public struct Configuration {
                 errorString = "Unknown Error"
             }
 
-            if hasCustomConfigurationFiles {
-                // Files that were explicitly specified could not be loaded -> fail
-                queuedPrintError("error: \(errorString)")
-                queuedFatalError("Could not read configuration")
-            } else {
+            if useDefaultConfigOnFailure ?? !hasCustomConfigurationFiles {
                 // No files were explicitly specified, so maybe the user doesn't want a config at all -> warn
                 queuedPrintError("warning: \(errorString) – Falling back to default configuration")
                 self.init(rulesMode: rulesMode, cachePath: cachePath)
+            } else {
+                // Files that were explicitly specified could not be loaded -> fail
+                queuedPrintError("error: \(errorString)")
+                queuedFatalError("Could not read configuration")
             }
         }
     }

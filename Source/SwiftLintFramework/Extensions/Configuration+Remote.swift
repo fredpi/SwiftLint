@@ -6,8 +6,11 @@ import FoundationNetworking
 
 internal extension Configuration.FileGraph.FilePath {
     // MARK: - Properties: Remote Cache
+    /// This should never be touched.
+    private static let swiftlintPath: String = ".swiftlint"
+
     /// This should never be touched. Change the version number for changes to the cache format
-    private static let remoteCachePath: String = ".swiftlint/RemoteConfigCache"
+    private static let remoteCachePath: String = "\(swiftlintPath)/RemoteConfigCache"
 
     /// If the format of the caching is changed in the future, change this version number
     private static let remoteCacheVersionNumber: String = "v1"
@@ -222,6 +225,10 @@ internal extension Configuration.FileGraph.FilePath {
 
         try? FileManager.default.removeItem(atPath: gitignorePath)
         try? FileManager.default.removeItem(atPath: remoteCachePath)
+
+        if (try? FileManager.default.contentsOfDirectory(atPath: swiftlintPath))?.isEmpty == true {
+            try? FileManager.default.removeItem(atPath: swiftlintPath)
+        }
     }
 
     private func maintainRemoteConfigCache(rootDirectory: String) throws {

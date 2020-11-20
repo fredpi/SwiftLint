@@ -209,17 +209,12 @@ extension ConfigurationTests {
         ("testConfiguresCorrectlyFromDict", testConfiguresCorrectlyFromDict),
         ("testConfigureFallsBackCorrectly", testConfigureFallsBackCorrectly),
         ("testAllowZeroLintableFiles", testAllowZeroLintableFiles),
-        ("testValidChildConfig", testValidChildConfig),
-        ("testValidParentConfig", testValidParentConfig),
-        ("testCommandLineChildConfigs", testCommandLineChildConfigs),
         ("testExcludeByPrefixExcludedPaths", testExcludeByPrefixExcludedPaths),
         ("testExcludeByPrefixForceExcludesFile", testExcludeByPrefixForceExcludesFile),
         ("testExcludeByPrefixForceExcludesFileNotPresentInExcluded", testExcludeByPrefixForceExcludesFileNotPresentInExcluded),
         ("testExcludeByPrefixForceExcludesDirectory", testExcludeByPrefixForceExcludesDirectory),
         ("testExcludeByPrefixForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre", testExcludeByPrefixForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre),
         ("testExcludeByPrefixGlobExcludePaths", testExcludeByPrefixGlobExcludePaths),
-        ("testValidRemoteChildConfig", testValidRemoteChildConfig),
-        ("testValidRemoteParentConfig", testValidRemoteParentConfig),
         ("testMerge", testMerge),
         ("testWarningThresholdMerging", testWarningThresholdMerging),
         ("testOnlyRulesMerging", testOnlyRulesMerging),
@@ -230,7 +225,16 @@ extension ConfigurationTests {
         ("testLevel2", testLevel2),
         ("testLevel3", testLevel3),
         ("testNestedConfigurationForOnePathPassedIn", testNestedConfigurationForOnePathPassedIn),
-        ("testParentConfigIsIgnoredAsNestedConfiguration", testParentConfigIsIgnoredAsNestedConfiguration)
+        ("testParentConfigIsIgnoredAsNestedConfiguration", testParentConfigIsIgnoredAsNestedConfiguration),
+        ("testValidChildConfig", testValidChildConfig),
+        ("testValidParentConfig", testValidParentConfig),
+        ("testCommandLineChildConfigs", testCommandLineChildConfigs),
+        ("testConfigCycleDetection", testConfigCycleDetection),
+        ("testCommandLineConfigsCycleDetection", testCommandLineConfigsCycleDetection),
+        ("testValidRemoteChildConfig", testValidRemoteChildConfig),
+        ("testValidRemoteParentConfig", testValidRemoteParentConfig),
+        ("testsRemoteConfigNotAllowedToReferenceLocalConfig", testsRemoteConfigNotAllowedToReferenceLocalConfig),
+        ("testRemoteConfigCycleDetection", testRemoteConfigCycleDetection)
     ]
 }
 

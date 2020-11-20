@@ -115,16 +115,7 @@ internal extension Configuration {
                 : Configuration.Key.parentConfig.rawValue
 
             if let reference = vertix.configurationDict[key] as? String {
-                var rootDirectory: String = ""
-                if case let .existing(path) = vertix.filePath {
-                    rootDirectory = path.bridge().deletingLastPathComponent
-                } else {
-                    throw ConfigurationError.generic(
-                        "Internal error: Processing promised config that doesn't exist yet"
-                    )
-                }
-
-                let referencedVertix = Vertix(string: reference, rootDirectory: rootDirectory)
+                let referencedVertix = Vertix(string: reference, rootDirectory: vertix.rootDirectory)
 
                 // Local vertices are allowed to have local / remote references
                 // Remote vertices are only allowed to have remote references
@@ -176,13 +167,13 @@ internal extension Configuration {
             // Detect cycles via back-edge detection during DFS
             func walkDown(stack: [Vertix]) throws {
                 // Please note that the equality check (`==`), not the identity check (`===`) is used
-                let neighbours = edges.filter { $0.parent == stack.last }.map { $0.child! }
-                if stack.contains(where: neighbours.contains) {
+                let children = edges.filter { $0.parent == stack.last }.map { $0.child! }
+                if stack.contains(where: children.contains) {
                     throw ConfigurationError.generic("There's a cycle of child / parent config references. "
                         + "Please check the hierarchy of configuration files passed via the command line "
                         + "and the childConfig / parentConfig entries within them.")
                 }
-                try neighbours.forEach { try walkDown(stack: stack + [$0]) }
+                try children.forEach { try walkDown(stack: stack + [$0]) }
             }
 
             try vertices.forEach { try walkDown(stack: [$0]) }

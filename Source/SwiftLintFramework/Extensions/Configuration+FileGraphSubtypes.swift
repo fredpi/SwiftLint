@@ -81,7 +81,7 @@ internal extension Configuration.FileGraph {
         internal static func == (lhs: Vertix, rhs: Vertix) -> Bool {
             return lhs.filePath == rhs.filePath
                 && lhs.originalRemoteString == rhs.originalRemoteString
-                && lhs.originalRootDirectory == rhs.originalRootDirectory
+                && lhs.rootDirectory == rhs.rootDirectory
         }
 
         internal func hash(into hasher: inout Hasher) {

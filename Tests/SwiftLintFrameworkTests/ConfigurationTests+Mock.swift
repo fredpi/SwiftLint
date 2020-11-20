@@ -1,6 +1,8 @@
 @testable import SwiftLintFramework
 import XCTest
 
+// swiftlint:disable nesting identifier_name
+
 internal extension ConfigurationTests {
     enum Mock {
         // MARK: Test Resources Path
@@ -16,10 +18,19 @@ internal extension ConfigurationTests {
             static var nestedSub: String { nested.stringByAppendingPathComponent("Sub") }
             static var childConfigTest1: String { level0.stringByAppendingPathComponent("ChildConfig/Test1/Main") }
             static var childConfigTest2: String { level0.stringByAppendingPathComponent("ChildConfig/Test2") }
+            static var childConfigCycle1: String { level0.stringByAppendingPathComponent("ChildConfig/Cycle1") }
+            static var childConfigCycle2: String { level0.stringByAppendingPathComponent("ChildConfig/Cycle2") }
+            static var childConfigCycle3: String { level0.stringByAppendingPathComponent("ChildConfig/Cycle3/Main") }
+            static var childConfigCycle4: String { level0.stringByAppendingPathComponent("ChildConfig/Cycle4") }
             static var parentConfigTest1: String { level0.stringByAppendingPathComponent("ParentConfig/Test1") }
             static var parentConfigTest2: String { level0.stringByAppendingPathComponent("ParentConfig/Test2") }
-            static var remoteChildConfig: String { level0.stringByAppendingPathComponent("RemoteChildConfig") }
-            static var remoteParentConfig: String { level0.stringByAppendingPathComponent("RemoteParentConfig") }
+            static var parentConfigCycle1: String { level0.stringByAppendingPathComponent("ParentConfig/Cycle1") }
+            static var parentConfigCycle2: String { level0.stringByAppendingPathComponent("ParentConfig/Cycle2") }
+            static var parentConfigCycle3: String { level0.stringByAppendingPathComponent("ParentConfig/Cycle3") }
+            static var remoteConfigChild: String { level0.stringByAppendingPathComponent("RemoteConfig/Child") }
+            static var remoteConfigParent: String { level0.stringByAppendingPathComponent("RemoteConfig/Parent") }
+            static var remoteConfigLocalRef: String { level0.stringByAppendingPathComponent("RemoteConfig/LocalRef") }
+            static var remoteConfigCycle: String { level0.stringByAppendingPathComponent("RemoteConfig/Cycle") }
             static var emptyFolder: String { level0.stringByAppendingPathComponent("EmptyFolder") }
         }
 
@@ -33,7 +44,6 @@ internal extension ConfigurationTests {
             static var _2CustomRulesDisabled: String {
                 Dir.level2.stringByAppendingPathComponent("custom_rules_disabled.yml")
             }
-
             static var _3: String { Dir.level3.stringByAppendingPathComponent(Configuration.defaultFileName) }
             static var nested: String { Dir.nested.stringByAppendingPathComponent(Configuration.defaultFileName) }
         }
@@ -57,7 +67,6 @@ internal extension ConfigurationTests {
             static var _2CustomRulesDisabled: Configuration {
                 Configuration(configurationFiles: [Yml._2CustomRulesDisabled])
             }
-
             static var _3: Configuration { Configuration(configurationFiles: [Yml._3]) }
             static var nested: Configuration { Configuration(configurationFiles: [Yml.nested]) }
         }

@@ -2,83 +2,6 @@ import Foundation
 
 internal extension Configuration {
     struct FileGraph: Hashable {
-        // MARK: - Subtypes
-        public enum FilePath: Hashable { // swiftlint:disable:this nesting
-            case promised(urlString: String)
-            case existing(path: String)
-        }
-
-        private class Vertix: Hashable { // swiftlint:disable:this nesting
-            internal var originatesFromRemote: Bool { return originalRemoteString != nil }
-            internal let originalRemoteString: String?
-
-            private(set) var filePath: FilePath
-
-            private(set) var configurationString: String = ""
-            private(set) var configurationDict: [String: Any] = [:]
-
-            init(string: String, rootDirectory: String) {
-                if string.hasPrefix("http://") || string.hasPrefix("https://") {
-                    originalRemoteString = string
-                    filePath = .promised(urlString: string)
-                } else {
-                    originalRemoteString = nil
-                    filePath = .existing(
-                        path: string.bridge().absolutePathRepresentation(rootDirectory: rootDirectory)
-                    )
-                }
-            }
-
-            internal func build(
-                remoteConfigTimeout: TimeInterval,
-                remoteConfigTimeoutIfCached: TimeInterval
-            ) throws {
-                let path = try filePath.resolve(
-                    remoteConfigTimeout: remoteConfigTimeout,
-                    remoteConfigTimeoutIfCached: remoteConfigTimeoutIfCached
-                )
-
-                filePath = .existing(path: path)
-                configurationString = try read(at: path)
-                configurationDict = try YamlParser.parse(configurationString)
-            }
-
-            private func read(at path: String) throws -> String {
-                guard !path.isEmpty && FileManager.default.fileExists(atPath: path) else {
-                    throw ConfigurationError.generic("File \(path) can't be found.")
-                }
-
-                return try String(contentsOfFile: path, encoding: .utf8)
-            }
-
-            internal static func == (lhs: Vertix, rhs: Vertix) -> Bool {
-                return lhs.filePath == rhs.filePath
-            }
-
-            internal func hash(into hasher: inout Hasher) {
-                hasher.combine(filePath)
-            }
-        }
-
-        private struct Edge: Hashable { // swiftlint:disable:this nesting
-            var parent: Vertix!
-            var child: Vertix!
-
-            internal static func == (lhs: Edge, rhs: Edge) -> Bool {
-                return lhs.parent == rhs.parent && lhs.child == rhs.child
-            }
-
-            internal func hash(into hasher: inout Hasher) {
-                hasher.combine(parent)
-                hasher.combine(child)
-            }
-        }
-
-        private enum EdgeType: Hashable { // swiftlint:disable:this nesting
-            case childConfig
-            case parentConfig
-        }
-
         // MARK: - Properties
         private static let defaultRemoteConfigTimeout: TimeInterval = 2
         private static let defaultRemoteConfigTimeoutIfCached: TimeInterval = 1
@@ -209,11 +132,12 @@ internal extension Configuration {
                     throw ConfigurationError.generic("Remote configs are not allowed to reference local configs.")
                 } else {
                     let existingVertix = findPossiblyExistingVertix(sameAs: referencedVertix)
+                    let existingVertixCopy = existingVertix.map { $0.copy(withNewRootDirectory: rootDirectory) }
 
                     edges.insert(
                         type == .childConfig
-                            ? Edge(parent: vertix, child: existingVertix ?? referencedVertix)
-                            : Edge(parent: existingVertix ?? referencedVertix, child: vertix)
+                            ? Edge(parent: vertix, child: existingVertixCopy ?? referencedVertix)
+                            : Edge(parent: existingVertixCopy ?? referencedVertix, child: vertix)
                     )
 
                     if existingVertix == nil {
@@ -251,6 +175,7 @@ internal extension Configuration {
         private func validate() throws -> [(configurationDict: [String: Any], rootDirectory: String)] {
             // Detect cycles via back-edge detection during DFS
             func walkDown(stack: [Vertix]) throws {
+                // Please note that the equality check (`==`), not the identity check (`===`) is used
                 let neighbours = edges.filter { $0.parent == stack.last }.map { $0.child! }
                 if stack.contains(where: neighbours.contains) {
                     throw ConfigurationError.generic("There's a cycle of child / parent config references. "
@@ -296,19 +221,10 @@ internal extension Configuration {
                 verticesToMerge.append(vertix)
             }
 
-            return try verticesToMerge.map {
-                var rootDirectory = ""
-                if case let .existing(path) = $0.filePath {
-                    rootDirectory = path.bridge().deletingLastPathComponent
-                } else {
-                    throw ConfigurationError.generic(
-                        "Internal error: Processing promised config that doesn't exist yet"
-                    )
-                }
-
+            return verticesToMerge.map {
                 return (
                     configurationDict: $0.configurationDict,
-                    rootDirectory: rootDirectory
+                    rootDirectory: $0.rootDirectory
                 )
             }
         }

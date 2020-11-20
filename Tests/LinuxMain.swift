@@ -180,6 +180,7 @@ extension ConfigurationAliasesTests {
 extension ConfigurationTests {
     static var allTests: [(String, (ConfigurationTests) -> () throws -> Void)] = [
         ("testInit", testInit),
+        ("testNoConfiguration", testNoConfiguration),
         ("testEmptyConfiguration", testEmptyConfiguration),
         ("testInitWithRelativePathAndRootPath", testInitWithRelativePathAndRootPath),
         ("testEnableAllRulesConfiguration", testEnableAllRulesConfiguration),
@@ -199,7 +200,6 @@ extension ConfigurationTests {
         ("testGlobExcludePaths", testGlobExcludePaths),
         ("testIsEqualTo", testIsEqualTo),
         ("testIsNotEqualTo", testIsNotEqualTo),
-        ("testNoConfiguration", testNoConfiguration),
         ("testCustomConfiguration", testCustomConfiguration),
         ("testConfigurationWithSwiftFileAsRoot", testConfigurationWithSwiftFileAsRoot),
         ("testConfigurationWithSwiftFileAsRootAndCustomConfiguration", testConfigurationWithSwiftFileAsRootAndCustomConfiguration),
@@ -218,6 +218,8 @@ extension ConfigurationTests {
         ("testExcludeByPrefixForceExcludesDirectory", testExcludeByPrefixForceExcludesDirectory),
         ("testExcludeByPrefixForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre", testExcludeByPrefixForceExcludesDirectoryThatIsNotInExcludedButHasChildrenThatAre),
         ("testExcludeByPrefixGlobExcludePaths", testExcludeByPrefixGlobExcludePaths),
+        ("testValidRemoteChildConfig", testValidRemoteChildConfig),
+        ("testValidRemoteParentConfig", testValidRemoteParentConfig),
         ("testMerge", testMerge),
         ("testWarningThresholdMerging", testWarningThresholdMerging),
         ("testOnlyRulesMerging", testOnlyRulesMerging),
